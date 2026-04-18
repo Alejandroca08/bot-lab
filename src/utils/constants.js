@@ -9,6 +9,13 @@ export const VIEWS = {
   SETTINGS: "SETTINGS",
   SIMULATOR: "SIMULATOR",
   TESTLAB: "TESTLAB",
+  CLIENTS: "CLIENTS",
+  DASHBOARD: "DASHBOARD",
+};
+
+export const ROLES = {
+  ADMIN: "admin",
+  CLIENT: "client",
 };
 
 export const BOT_STATUS = {

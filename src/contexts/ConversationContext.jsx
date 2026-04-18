@@ -1,68 +1,122 @@
-import {
-  createContext,
-  useContext,
-  useReducer,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { restQuery } from '../lib/supabase';
+import { AuthContext } from './AuthContext';
+import { ProjectContext } from './ProjectContext';
 
 export const ConversationContext = createContext(null);
 
-const STORAGE_KEY = 'botlab_conversations';
+export function ConversationProvider({ children }) {
+  const auth = useContext(AuthContext);
+  const { activeProject } = useContext(ProjectContext);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversationId, setActiveConversationIdState] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-function generateUUID() {
-  return crypto.randomUUID();
-}
+  const token = auth?.session?.access_token;
 
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+  const activeConversation = useMemo(
+    () => conversations.find((c) => c.id === activeConversationId) ?? null,
+    [conversations, activeConversationId]
+  );
 
-function saveToStorage(conversations) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-}
-
-// --- Reducer ---
-
-const ActionTypes = {
-  CREATE: 'CREATE_CONVERSATION',
-  DELETE: 'DELETE_CONVERSATION',
-  ADD_MESSAGE: 'ADD_MESSAGE',
-  UPDATE_MESSAGE_STATUS: 'UPDATE_MESSAGE_STATUS',
-  SET_BOT_STATUS: 'SET_BOT_STATUS',
-  ADD_ANNOTATION: 'ADD_ANNOTATION',
-  REMOVE_ANNOTATION: 'REMOVE_ANNOTATION',
-};
-
-function conversationsReducer(state, action) {
-  switch (action.type) {
-    case ActionTypes.CREATE: {
-      return [...state, action.payload];
+  // Load conversations when active project changes
+  useEffect(() => {
+    if (!activeProject || !auth?.session) {
+      setConversations([]);
+      return;
     }
 
-    case ActionTypes.DELETE: {
-      return state.filter((c) => c.id !== action.payload);
-    }
+    const loadConversations = async () => {
+      setLoading(true);
 
-    case ActionTypes.ADD_MESSAGE: {
-      const { conversationId, message } = action.payload;
-      return state.map((c) =>
-        c.id === conversationId
-          ? { ...c, messages: [...c.messages, message] }
-          : c
+      const select = encodeURIComponent('*,messages(*),annotations(*)');
+      const { data, error } = await restQuery(
+        `/rest/v1/conversations?select=${select}&project_id=eq.${activeProject.id}&order=created_at.desc`,
+        {},
+        token
       );
+
+      if (!error && data) {
+        setConversations(data.map(normalizeConversation));
+      }
+
+      setLoading(false);
+    };
+
+    loadConversations();
+  }, [activeProject?.id, auth?.session, token]);
+
+  const createConversation = useCallback(async (projectId, simulatedPhoneNumber, customerName) => {
+    const row = {
+      project_id: projectId,
+      user_id: auth?.session?.user?.id,
+      simulated_phone_number: simulatedPhoneNumber,
+      customer_name: customerName,
+      bot_status: 'active',
+    };
+
+    const { data, error } = await restQuery(
+      '/rest/v1/conversations?select=*',
+      { method: 'POST', body: row, prefer: 'return=representation', single: true },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to create conversation:', error.message);
+      return null;
     }
 
-    case ActionTypes.UPDATE_MESSAGE_STATUS: {
-      const { conversationId, messageId, status } = action.payload;
-      return state.map((c) =>
+    const conv = normalizeConversation({ ...data, messages: [], annotations: [] });
+    setConversations((prev) => [conv, ...prev]);
+    return conv;
+  }, [auth?.session, token]);
+
+  const addMessage = useCallback(async (conversationId, message) => {
+    const row = {
+      conversation_id: conversationId,
+      sender: message.sender,
+      type: message.type || 'text',
+      content: message.content,
+      metadata: message.metadata || {},
+      status: message.status || 'sending',
+    };
+
+    const { data, error } = await restQuery(
+      '/rest/v1/messages?select=*',
+      { method: 'POST', body: row, prefer: 'return=representation', single: true },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to add message:', error.message);
+      return null;
+    }
+
+    const normalized = normalizeMessage(data);
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === conversationId
+          ? { ...c, messages: [...c.messages, normalized] }
+          : c
+      )
+    );
+    return normalized;
+  }, [token]);
+
+  const updateMessageStatus = useCallback(async (conversationId, messageId, status) => {
+    const { error } = await restQuery(
+      `/rest/v1/messages?id=eq.${messageId}`,
+      { method: 'PATCH', body: { status }, prefer: 'return=minimal' },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to update message status:', error.message);
+      return;
+    }
+
+    setConversations((prev) =>
+      prev.map((c) =>
         c.id === conversationId
           ? {
               ...c,
@@ -71,171 +125,100 @@ function conversationsReducer(state, action) {
               ),
             }
           : c
-      );
+      )
+    );
+  }, [token]);
+
+  const setBotStatus = useCallback(async (conversationId, status) => {
+    const { error } = await restQuery(
+      `/rest/v1/conversations?id=eq.${conversationId}`,
+      { method: 'PATCH', body: { bot_status: status }, prefer: 'return=minimal' },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to set bot status:', error.message);
+      return;
     }
 
-    case ActionTypes.SET_BOT_STATUS: {
-      const { conversationId, status } = action.payload;
-      return state.map((c) =>
+    setConversations((prev) =>
+      prev.map((c) =>
         c.id === conversationId ? { ...c, botStatus: status } : c
-      );
+      )
+    );
+  }, [token]);
+
+  const addAnnotation = useCallback(async (conversationId, messageId, annotation) => {
+    const row = {
+      conversation_id: conversationId,
+      message_id: messageId,
+      user_id: auth?.session?.user?.id,
+      category: annotation.category,
+      severity: annotation.severity,
+      note: annotation.note,
+      suggestion: annotation.suggestion || '',
+    };
+
+    const { data, error } = await restQuery(
+      '/rest/v1/annotations?select=*',
+      { method: 'POST', body: row, prefer: 'return=representation', single: true },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to add annotation:', error.message);
+      return null;
     }
 
-    case ActionTypes.ADD_ANNOTATION: {
-      const { conversationId, annotation } = action.payload;
-      return state.map((c) =>
+    const normalized = normalizeAnnotation(data);
+    setConversations((prev) =>
+      prev.map((c) =>
         c.id === conversationId
-          ? { ...c, annotations: [...c.annotations, annotation] }
+          ? { ...c, annotations: [...c.annotations, normalized] }
           : c
-      );
+      )
+    );
+    return normalized;
+  }, [auth?.session, token]);
+
+  const removeAnnotation = useCallback(async (conversationId, annotationId) => {
+    const { error } = await restQuery(
+      `/rest/v1/annotations?id=eq.${annotationId}`,
+      { method: 'DELETE' },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to remove annotation:', error.message);
+      return;
     }
 
-    case ActionTypes.REMOVE_ANNOTATION: {
-      const { conversationId, annotationId } = action.payload;
-      return state.map((c) =>
+    setConversations((prev) =>
+      prev.map((c) =>
         c.id === conversationId
-          ? {
-              ...c,
-              annotations: c.annotations.filter((a) => a.id !== annotationId),
-            }
+          ? { ...c, annotations: c.annotations.filter((a) => a.id !== annotationId) }
           : c
-      );
+      )
+    );
+  }, [token]);
+
+  const deleteConversation = useCallback(async (id) => {
+    const { error } = await restQuery(
+      `/rest/v1/conversations?id=eq.${id}`,
+      { method: 'DELETE' },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to delete conversation:', error.message);
+      return;
     }
 
-    default:
-      return state;
-  }
-}
-
-export function ConversationProvider({ children }) {
-  const [conversations, dispatch] = useReducer(
-    conversationsReducer,
-    null,
-    loadFromStorage
-  );
-
-  const [activeConversationId, setActiveConversationIdState] = useState(null);
-
-  // Use a ref to track the latest state for persistence,
-  // avoiding stale closure issues with rapid dispatches.
-  const stateRef = useRef(conversations);
-  stateRef.current = conversations;
-
-  const dispatchAndPersist = useCallback(
-    (action) => {
-      dispatch(action);
-      const next = conversationsReducer(stateRef.current, action);
-      stateRef.current = next;
-      saveToStorage(next);
-    },
-    []
-  );
-
-  // --- Public API ---
-
-  const activeConversation = useMemo(
-    () => conversations.find((c) => c.id === activeConversationId) ?? null,
-    [conversations, activeConversationId]
-  );
-
-  const createConversation = useCallback(
-    (projectId, simulatedPhoneNumber, customerName) => {
-      const now = new Date().toISOString();
-      const conversation = {
-        id: generateUUID(),
-        projectId,
-        simulatedPhoneNumber,
-        customerName,
-        messages: [],
-        botStatus: 'active',
-        createdAt: now,
-        annotations: [],
-      };
-      dispatchAndPersist({ type: ActionTypes.CREATE, payload: conversation });
-      return conversation;
-    },
-    [dispatchAndPersist]
-  );
-
-  const addMessage = useCallback(
-    (conversationId, message) => {
-      const fullMessage = {
-        id: message.id ?? generateUUID(),
-        sender: message.sender,
-        type: message.type ?? 'text',
-        content: message.content,
-        timestamp: message.timestamp ?? new Date().toISOString(),
-        status: message.status ?? 'sending',
-        ...(message.metadata ? { metadata: message.metadata } : {}),
-      };
-      dispatchAndPersist({
-        type: ActionTypes.ADD_MESSAGE,
-        payload: { conversationId, message: fullMessage },
-      });
-      return fullMessage;
-    },
-    [dispatchAndPersist]
-  );
-
-  const updateMessageStatus = useCallback(
-    (conversationId, messageId, status) => {
-      dispatchAndPersist({
-        type: ActionTypes.UPDATE_MESSAGE_STATUS,
-        payload: { conversationId, messageId, status },
-      });
-    },
-    [dispatchAndPersist]
-  );
-
-  const setBotStatus = useCallback(
-    (conversationId, status) => {
-      dispatchAndPersist({
-        type: ActionTypes.SET_BOT_STATUS,
-        payload: { conversationId, status },
-      });
-    },
-    [dispatchAndPersist]
-  );
-
-  const addAnnotation = useCallback(
-    (conversationId, messageId, annotation) => {
-      const fullAnnotation = {
-        id: annotation.id ?? generateUUID(),
-        messageId,
-        category: annotation.category,
-        severity: annotation.severity,
-        note: annotation.note,
-        ...(annotation.suggestion ? { suggestion: annotation.suggestion } : {}),
-        createdAt: annotation.createdAt ?? new Date().toISOString(),
-      };
-      dispatchAndPersist({
-        type: ActionTypes.ADD_ANNOTATION,
-        payload: { conversationId, annotation: fullAnnotation },
-      });
-      return fullAnnotation;
-    },
-    [dispatchAndPersist]
-  );
-
-  const removeAnnotation = useCallback(
-    (conversationId, annotationId) => {
-      dispatchAndPersist({
-        type: ActionTypes.REMOVE_ANNOTATION,
-        payload: { conversationId, annotationId },
-      });
-    },
-    [dispatchAndPersist]
-  );
-
-  const deleteConversation = useCallback(
-    (id) => {
-      dispatchAndPersist({ type: ActionTypes.DELETE, payload: id });
-      if (activeConversationId === id) {
-        setActiveConversationIdState(null);
-      }
-    },
-    [dispatchAndPersist, activeConversationId]
-  );
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (activeConversationId === id) {
+      setActiveConversationIdState(null);
+    }
+  }, [activeConversationId, token]);
 
   const setActiveConversationId = useCallback((id) => {
     setActiveConversationIdState(id);
@@ -246,36 +229,26 @@ export function ConversationProvider({ children }) {
     [conversations]
   );
 
-  const value = useMemo(
-    () => ({
-      conversations,
-      activeConversationId,
-      activeConversation,
-      createConversation,
-      addMessage,
-      updateMessageStatus,
-      setBotStatus,
-      addAnnotation,
-      removeAnnotation,
-      deleteConversation,
-      setActiveConversationId,
-      getConversationsForProject,
-    }),
-    [
-      conversations,
-      activeConversationId,
-      activeConversation,
-      createConversation,
-      addMessage,
-      updateMessageStatus,
-      setBotStatus,
-      addAnnotation,
-      removeAnnotation,
-      deleteConversation,
-      setActiveConversationId,
-      getConversationsForProject,
-    ]
-  );
+  const value = useMemo(() => ({
+    conversations,
+    activeConversationId,
+    activeConversation,
+    loading,
+    createConversation,
+    addMessage,
+    updateMessageStatus,
+    setBotStatus,
+    addAnnotation,
+    removeAnnotation,
+    deleteConversation,
+    setActiveConversationId,
+    getConversationsForProject,
+  }), [
+    conversations, activeConversationId, activeConversation, loading,
+    createConversation, addMessage, updateMessageStatus, setBotStatus,
+    addAnnotation, removeAnnotation, deleteConversation,
+    setActiveConversationId, getConversationsForProject,
+  ]);
 
   return (
     <ConversationContext.Provider value={value}>
@@ -284,14 +257,41 @@ export function ConversationProvider({ children }) {
   );
 }
 
-export function useConversation() {
-  const context = useContext(ConversationContext);
-  if (!context) {
-    throw new Error(
-      'useConversation must be used within a ConversationProvider'
-    );
-  }
-  return context;
+function normalizeConversation(row) {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    simulatedPhoneNumber: row.simulated_phone_number,
+    customerName: row.customer_name,
+    botStatus: row.bot_status,
+    createdAt: row.created_at,
+    messages: (row.messages || [])
+      .map(normalizeMessage)
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
+    annotations: (row.annotations || []).map(normalizeAnnotation),
+  };
 }
 
-export default ConversationContext;
+function normalizeMessage(row) {
+  return {
+    id: row.id,
+    sender: row.sender,
+    type: row.type,
+    content: row.content,
+    metadata: row.metadata || {},
+    status: row.status,
+    timestamp: row.created_at,
+  };
+}
+
+function normalizeAnnotation(row) {
+  return {
+    id: row.id,
+    messageId: row.message_id,
+    category: row.category,
+    severity: row.severity,
+    note: row.note,
+    suggestion: row.suggestion || '',
+    createdAt: row.created_at,
+  };
+}

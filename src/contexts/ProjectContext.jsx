@@ -1,129 +1,169 @@
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { restQuery } from '../lib/supabase';
+import { AuthContext } from './AuthContext';
 
 export const ProjectContext = createContext(null);
 
-const STORAGE_KEYS = {
-  projects: 'botlab_projects',
-  activeProject: 'botlab_activeProject',
-};
-
-function generateUUID() {
-  return crypto.randomUUID();
-}
-
-function loadFromStorage(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveToStorage(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
 export function ProjectProvider({ children }) {
-  const [projects, setProjects] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.projects, [])
-  );
-  const [activeProjectId, setActiveProjectIdState] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.activeProject, null)
-  );
+  const auth = useContext(AuthContext);
+  const [projects, setProjects] = useState([]);
+  const [activeProjectId, setActiveProjectIdState] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const token = auth?.session?.access_token;
 
   const activeProject = useMemo(
     () => projects.find((p) => p.id === activeProjectId) ?? null,
     [projects, activeProjectId]
   );
 
-  const persistProjects = useCallback((next) => {
-    setProjects(next);
-    saveToStorage(STORAGE_KEYS.projects, next);
-  }, []);
+  // Load projects based on role
+  useEffect(() => {
+    if (!auth?.profile) {
+      setLoading(false);
+      return;
+    }
 
-  const addProject = useCallback(
-    (project) => {
-      const now = new Date().toISOString();
-      const newProject = {
-        id: generateUUID(),
-        name: project.name ?? '',
-        clientName: project.clientName ?? '',
-        webhookUrl: project.webhookUrl ?? '',
-        webhookFormat: project.webhookFormat ?? 'ycloud',
-        testPhoneNumbers: project.testPhoneNumbers ?? [],
-        agentPhoneNumber: project.agentPhoneNumber ?? '',
-        createdAt: now,
-        updatedAt: now,
-      };
-      const next = [...projects, newProject];
-      persistProjects(next);
-      return newProject;
-    },
-    [projects, persistProjects]
-  );
+    const loadProjects = async () => {
+      setLoading(true);
 
-  const updateProject = useCallback(
-    (id, updates) => {
-      const next = projects.map((p) =>
-        p.id === id
-          ? { ...p, ...updates, id, updatedAt: new Date().toISOString() }
-          : p
-      );
-      persistProjects(next);
-    },
-    [projects, persistProjects]
-  );
+      if (auth.isAdmin) {
+        const { data, error } = await restQuery(
+          '/rest/v1/projects?select=*&order=created_at.desc',
+          {},
+          token
+        );
 
-  const deleteProject = useCallback(
-    (id) => {
-      const next = projects.filter((p) => p.id !== id);
-      persistProjects(next);
-      if (activeProjectId === id) {
-        setActiveProjectIdState(null);
-        saveToStorage(STORAGE_KEYS.activeProject, null);
+        if (!error && data) {
+          setProjects(data.map(normalizeProject));
+          if (data.length > 0 && !activeProjectId) {
+            setActiveProjectIdState(data[0].id);
+          }
+        }
+      } else {
+        if (auth.profile.project_id) {
+          const { data, error } = await restQuery(
+            `/rest/v1/projects?id=eq.${auth.profile.project_id}&select=*`,
+            { single: true },
+            token
+          );
+
+          if (!error && data) {
+            const normalized = normalizeProject(data);
+            setProjects([normalized]);
+            setActiveProjectIdState(normalized.id);
+          }
+        }
       }
-    },
-    [projects, activeProjectId, persistProjects]
-  );
+
+      setLoading(false);
+    };
+
+    loadProjects();
+  }, [auth?.profile, auth?.isAdmin, token]);
+
+  const addProject = useCallback(async (project) => {
+    const row = {
+      name: project.name,
+      client_name: project.clientName,
+      webhook_url: project.webhookUrl,
+      webhook_format: project.webhookFormat || 'ycloud',
+      agent_phone_number: project.agentPhoneNumber || '',
+      test_phone_numbers: project.testPhoneNumbers || [],
+      created_by: auth?.session?.user?.id,
+    };
+
+    const { data, error } = await restQuery(
+      '/rest/v1/projects?select=*',
+      { method: 'POST', body: row, prefer: 'return=representation', single: true },
+      token
+    );
+
+    if (error) {
+      console.error('[BotLab] Failed to create project:', error.message);
+      alert('Failed to create project: ' + error.message);
+      return null;
+    }
+
+    const newProject = normalizeProject(data);
+    setProjects((prev) => [newProject, ...prev]);
+    return newProject;
+  }, [auth?.session, token]);
+
+  const updateProject = useCallback(async (id, updates) => {
+    const row = {};
+    if (updates.name !== undefined) row.name = updates.name;
+    if (updates.clientName !== undefined) row.client_name = updates.clientName;
+    if (updates.webhookUrl !== undefined) row.webhook_url = updates.webhookUrl;
+    if (updates.webhookFormat !== undefined) row.webhook_format = updates.webhookFormat;
+    if (updates.agentPhoneNumber !== undefined) row.agent_phone_number = updates.agentPhoneNumber;
+    if (updates.testPhoneNumbers !== undefined) row.test_phone_numbers = updates.testPhoneNumbers;
+    row.updated_at = new Date().toISOString();
+
+    const { error } = await restQuery(
+      `/rest/v1/projects?id=eq.${id}`,
+      { method: 'PATCH', body: row, prefer: 'return=minimal' },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to update project:', error.message);
+      return;
+    }
+
+    setProjects((prev) =>
+      prev.map((p) => p.id === id ? { ...p, ...updates, updatedAt: row.updated_at } : p)
+    );
+  }, [token]);
+
+  const deleteProject = useCallback(async (id) => {
+    const { error } = await restQuery(
+      `/rest/v1/projects?id=eq.${id}`,
+      { method: 'DELETE' },
+      token
+    );
+
+    if (error) {
+      console.error('Failed to delete project:', error.message);
+      return;
+    }
+
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    if (activeProjectId === id) {
+      setActiveProjectIdState(null);
+    }
+  }, [activeProjectId, token]);
 
   const setActiveProjectId = useCallback((id) => {
     setActiveProjectIdState(id);
-    saveToStorage(STORAGE_KEYS.activeProject, id);
   }, []);
 
-  const value = useMemo(
-    () => ({
-      projects,
-      activeProjectId,
-      activeProject,
-      addProject,
-      updateProject,
-      deleteProject,
-      setActiveProjectId,
-    }),
-    [
-      projects,
-      activeProjectId,
-      activeProject,
-      addProject,
-      updateProject,
-      deleteProject,
-      setActiveProjectId,
-    ]
-  );
+  const value = useMemo(() => ({
+    projects,
+    activeProjectId,
+    activeProject,
+    loading,
+    addProject,
+    updateProject,
+    deleteProject,
+    setActiveProjectId,
+  }), [projects, activeProjectId, activeProject, loading, addProject, updateProject, deleteProject, setActiveProjectId]);
 
   return (
     <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
   );
 }
 
-export function useProject() {
-  const context = useContext(ProjectContext);
-  if (!context) {
-    throw new Error('useProject must be used within a ProjectProvider');
-  }
-  return context;
+function normalizeProject(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    clientName: row.client_name,
+    webhookUrl: row.webhook_url,
+    webhookFormat: row.webhook_format,
+    agentPhoneNumber: row.agent_phone_number || '',
+    testPhoneNumbers: row.test_phone_numbers || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
-
-export default ProjectContext;

@@ -5,7 +5,12 @@
       "Bash(mv botlab-temp/* botlab-temp/.* .)",
       "Bash(rmdir botlab-temp:*)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(grep -E \"\\\\.\\(jsx?|json\\)$\")",
+      "Bash(kill:*)",
+      "Bash(npx vite:*)",
+      "Bash(curl:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

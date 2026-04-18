@@ -9,7 +9,7 @@ import PasteResponseModal from './PasteResponseModal';
 import ConversationList from './ConversationList';
 import { useWebhook } from '../../hooks/useWebhook';
 import { buildInboundTextPayload, buildInboundImagePayload, buildInboundAudioPayload } from '../../utils/payloadBuilders';
-import { generateUUID, generateMessageId } from '../../utils/idGenerators';
+import { generateMessageId } from '../../utils/idGenerators';
 
 export default function ChatWindow() {
   const { activeProject } = useContext(ProjectContext);
@@ -46,28 +46,28 @@ export default function ChatWindow() {
     );
   }
 
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
     const phone = activeProject.testPhoneNumbers[0] || '+1234567890';
-    const conv = createConversation(activeProject.id, phone, 'Test Customer');
-    setActiveConversationId(conv.id);
+    const conv = await createConversation(activeProject.id, phone, 'Test Customer');
+    if (conv) {
+      setActiveConversationId(conv.id);
+    }
     setShowConversations(false);
   };
 
   const handleSendMessage = async (content, type = 'text', metadata = {}) => {
     if (!activeConversation) return;
 
-    const msgId = generateMessageId();
     const message = {
-      id: msgId,
       sender: 'customer',
       type,
       content,
-      timestamp: new Date().toISOString(),
       status: 'sending',
       metadata,
     };
 
-    addMessage(activeConversation.id, message);
+    const created = await addMessage(activeConversation.id, message);
+    if (!created) return;
 
     let payload;
     if (type === 'text') {
@@ -93,20 +93,17 @@ export default function ChatWindow() {
     }
 
     const result = await sendPayload(activeProject.webhookUrl, payload);
-    updateMessageStatus(activeConversation.id, msgId, result.ok ? 'delivered' : 'failed');
+    await updateMessageStatus(activeConversation.id, created.id, result.ok ? 'delivered' : 'failed');
   };
 
-  const handlePasteResponse = (responseText) => {
+  const handlePasteResponse = async (responseText) => {
     if (!activeConversation) return;
-    const message = {
-      id: generateMessageId(),
+    await addMessage(activeConversation.id, {
       sender: 'bot',
       type: 'text',
       content: responseText,
-      timestamp: new Date().toISOString(),
       status: 'read',
-    };
-    addMessage(activeConversation.id, message);
+    });
     setPasteModalOpen(false);
   };
 

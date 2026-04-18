@@ -1,41 +1,33 @@
 import { useState, useCallback } from "react";
 
+const PROXY_URL = "/api/webhook-proxy";
+
 export function useWebhook() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const sendPayload = useCallback(async (url, payload) => {
+  const sendPayload = useCallback(async (webhookUrl, payload) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(PROXY_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ webhookUrl, payload }),
       });
 
-      if (!response.ok) {
-        const errorBody = await response.text().catch(() => "");
-        throw new Error(
-          `HTTP ${response.status}: ${response.statusText}${errorBody ? ` — ${errorBody}` : ""}`
-        );
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || result?.error) {
+        throw new Error(result?.error || `Proxy returned HTTP ${response.status}`);
       }
 
-      const data = await response.json().catch(() => null);
-      return { ok: true, status: response.status, data };
+      return { ok: result.ok, status: result.status, data: result.data };
     } catch (err) {
-      let message = err.message;
-
-      if (err instanceof TypeError && err.message === "Failed to fetch") {
-        message =
-          "Request failed. This is likely a CORS error — the webhook server must include " +
-          "'Access-Control-Allow-Origin' headers, or you can route through a proxy. " +
-          "Check the browser console for details.";
-      }
-
+      const message = err.message || "Webhook request failed";
       setError(message);
       return { ok: false, error: message };
     } finally {

@@ -1,5 +1,7 @@
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { ProjectContext } from '../../contexts/ProjectContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { VIEWS } from '../../utils/constants';
 
 const NAV_ITEMS = [
@@ -8,8 +10,42 @@ const NAV_ITEMS = [
   { view: VIEWS.TESTLAB, label: 'Test Lab', icon: TestLabIcon },
 ];
 
+const ADMIN_NAV_ITEMS = [
+  { view: VIEWS.CLIENTS, label: 'Clients', icon: ClientsIcon },
+  { view: VIEWS.DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
+];
+
 export default function Sidebar({ activeView, onViewChange }) {
   const { projects, activeProject, setActiveProjectId } = useContext(ProjectContext);
+  const { signOut, profile } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Subscribe to new annotations for badge count
+  useEffect(() => {
+    const channel = supabase
+      .channel('sidebar-annotations')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'annotations' },
+        () => {
+          if (activeView !== VIEWS.DASHBOARD) {
+            setUnreadCount((c) => c + 1);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeView]);
+
+  // Clear badge when navigating to dashboard
+  useEffect(() => {
+    if (activeView === VIEWS.DASHBOARD) {
+      setUnreadCount(0);
+    }
+  }, [activeView]);
 
   return (
     <aside className="w-64 bg-surface-800 border-r border-surface-400/50 flex flex-col h-screen shrink-0">
@@ -23,7 +59,7 @@ export default function Sidebar({ activeView, onViewChange }) {
           </div>
           <div>
             <h1 className="font-mono text-sm font-bold text-surface-50 tracking-wider">BOTLAB</h1>
-            <p className="text-[10px] text-surface-300 font-mono tracking-wider">WA BOT TESTING</p>
+            <p className="text-[10px] text-surface-300 font-mono tracking-wider">ADMIN PANEL</p>
           </div>
         </div>
       </div>
@@ -44,6 +80,30 @@ export default function Sidebar({ activeView, onViewChange }) {
             <span className="font-mono text-xs uppercase tracking-wider">{label}</span>
           </button>
         ))}
+
+        {/* Admin-only nav items */}
+        <div className="pt-3 mt-3 border-t border-surface-400/30">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-surface-300 px-3 mb-2">Admin</p>
+          {ADMIN_NAV_ITEMS.map(({ view, label, icon: Icon }) => (
+            <button
+              key={view}
+              onClick={() => onViewChange(view)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                ${activeView === view
+                  ? 'bg-accent/10 text-accent border border-accent/20'
+                  : 'text-surface-200 hover:text-surface-50 hover:bg-surface-700 border border-transparent'
+                }`}
+            >
+              <Icon active={activeView === view} />
+              <span className="font-mono text-xs uppercase tracking-wider">{label}</span>
+              {view === VIEWS.DASHBOARD && unreadCount > 0 && (
+                <span className="ml-auto bg-severity-critical text-white text-[9px] font-mono font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </nav>
 
       {/* Project selector */}
@@ -71,9 +131,27 @@ export default function Sidebar({ activeView, onViewChange }) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="mt-auto px-4 py-3 border-t border-surface-400/50">
-        <p className="text-[10px] text-surface-300 font-mono">v1.0.0 — Developer Tool</p>
+      {/* Footer with sign out */}
+      <div className="mt-auto px-3 py-3 border-t border-surface-400/50 space-y-2">
+        <div className="flex items-center gap-2 px-1">
+          <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center">
+            <span className="text-[10px] font-mono font-bold text-accent">
+              {(profile?.name || 'A').charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <span className="text-xs text-surface-200 truncate">{profile?.name || 'Admin'}</span>
+        </div>
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-surface-300 hover:text-surface-50 hover:bg-surface-700 transition-all"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Sign Out
+        </button>
       </div>
     </aside>
   );
@@ -104,6 +182,28 @@ function TestLabIcon({ active }) {
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
       <polyline points="10 9 9 9 8 9" />
+    </svg>
+  );
+}
+
+function ClientsIcon({ active }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? '#25D366' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function DashboardIcon({ active }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? '#25D366' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
     </svg>
   );
 }

@@ -2,7 +2,6 @@ import { useState, useContext, useRef, useEffect } from 'react';
 import { ConversationContext } from '../../contexts/ConversationContext';
 import { useWebhook } from '../../hooks/useWebhook';
 import { buildOutboundTextPayload } from '../../utils/payloadBuilders';
-import { generateMessageId } from '../../utils/idGenerators';
 import { REACTIVATION_KEYWORD } from '../../utils/constants';
 import MessageBubble from './MessageBubble';
 
@@ -18,25 +17,22 @@ export default function AgentPanel({ conversation, project, onClose }) {
 
   const sendAgentMessage = async (body) => {
     const isReactivation = body === REACTIVATION_KEYWORD;
-    const msgId = generateMessageId();
 
-    const message = {
-      id: msgId,
+    const created = await addMessage(conversation.id, {
       sender: 'agent',
       type: 'text',
       content: body,
-      timestamp: new Date().toISOString(),
       status: 'sending',
       metadata: { agentName: project.clientName },
-    };
+    });
 
-    addMessage(conversation.id, message);
+    if (!created) return;
 
     // Update bot status
     if (isReactivation) {
-      setBotStatus(conversation.id, 'active');
+      await setBotStatus(conversation.id, 'active');
     } else {
-      setBotStatus(conversation.id, 'deactivated');
+      await setBotStatus(conversation.id, 'deactivated');
     }
 
     // Build and send outbound payload
@@ -48,7 +44,7 @@ export default function AgentPanel({ conversation, project, onClose }) {
     });
 
     const result = await sendPayload(project.webhookUrl, payload);
-    updateMessageStatus(conversation.id, msgId, result.ok ? 'delivered' : 'failed');
+    await updateMessageStatus(conversation.id, created.id, result.ok ? 'delivered' : 'failed');
 
     setText('');
   };
