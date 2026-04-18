@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 
 const PROXY_URL = "/api/webhook-proxy";
+const isDev = import.meta.env.DEV;
 
 export function useWebhook() {
   const [loading, setLoading] = useState(false);
@@ -11,21 +12,43 @@ export function useWebhook() {
     setError(null);
 
     try {
-      const response = await fetch(PROXY_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ webhookUrl, payload }),
-      });
+      let ok, status, data;
 
-      const result = await response.json().catch(() => null);
+      if (isDev) {
+        // In dev mode, call the webhook directly (no proxy)
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok || result?.error) {
-        throw new Error(result?.error || `Proxy returned HTTP ${response.status}`);
+        status = response.status;
+        ok = response.ok;
+        data = await response.json().catch(() => null);
+      } else {
+        // In production, route through CF Pages Function proxy
+        const response = await fetch(PROXY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ webhookUrl, payload }),
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || result?.error) {
+          throw new Error(result?.error || `Proxy returned HTTP ${response.status}`);
+        }
+
+        ok = result.ok;
+        status = result.status;
+        data = result.data;
       }
 
-      return { ok: result.ok, status: result.status, data: result.data };
+      if (!ok) {
+        throw new Error(`Webhook returned HTTP ${status}`);
+      }
+
+      return { ok: true, status, data };
     } catch (err) {
       const message = err.message || "Webhook request failed";
       setError(message);

@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# n8n workflow exports (contain API keys)
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# Environment
+.env.local

@@ -94,6 +94,20 @@ export default function ChatWindow() {
 
     const result = await sendPayload(activeProject.webhookUrl, payload);
     await updateMessageStatus(activeConversation.id, created.id, result.ok ? 'delivered' : 'failed');
+
+    // Auto-display bot response from webhook reply
+    if (result.ok && result.data) {
+      const botText = result.data.output || result.data.message || result.data.text ||
+        (typeof result.data === 'string' ? result.data : null);
+      if (botText) {
+        await addMessage(activeConversation.id, {
+          sender: 'bot',
+          type: 'text',
+          content: botText,
+          status: 'delivered',
+        });
+      }
+    }
   };
 
   const handlePasteResponse = async (responseText) => {
