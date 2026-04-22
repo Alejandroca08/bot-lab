@@ -62,7 +62,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to create conversation:', error.message);
+      // Failed to create conversation
       return null;
     }
 
@@ -88,7 +88,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to add message:', error.message);
+      // Failed to add message
       return null;
     }
 
@@ -111,7 +111,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to update message status:', error.message);
+      // Failed to update message status
       return;
     }
 
@@ -137,7 +137,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to set bot status:', error.message);
+      // Failed to set bot status
       return;
     }
 
@@ -166,7 +166,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to add annotation:', error.message);
+      // Failed to add annotation
       return null;
     }
 
@@ -189,7 +189,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to remove annotation:', error.message);
+      // Failed to remove annotation
       return;
     }
 
@@ -210,7 +210,7 @@ export function ConversationProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to delete conversation:', error.message);
+      // Failed to delete conversation
       return;
     }
 

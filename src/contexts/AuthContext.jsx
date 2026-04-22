@@ -16,13 +16,9 @@ export function AuthProvider({ children }) {
         token
       );
 
-      if (error) {
-        console.error('[BotLab] Failed to fetch profile:', error.message);
-        return null;
-      }
+      if (error) return null;
       return data;
-    } catch (err) {
-      console.error('[BotLab] Profile fetch crashed:', err);
+    } catch {
       return null;
     }
   }, []);
@@ -36,8 +32,7 @@ export function AuthProvider({ children }) {
         setProfile(p);
       }
       setLoading(false);
-    }).catch((err) => {
-      console.error('[BotLab] getSession failed:', err);
+    }).catch(() => {
       setLoading(false);
     });
 

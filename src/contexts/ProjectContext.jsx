@@ -80,8 +80,7 @@ export function ProjectProvider({ children }) {
     );
 
     if (error) {
-      console.error('[BotLab] Failed to create project:', error.message);
-      alert('Failed to create project: ' + error.message);
+      alert('Failed to create project. Please try again.');
       return null;
     }
 
@@ -107,7 +106,7 @@ export function ProjectProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to update project:', error.message);
+      // Failed to update project
       return;
     }
 
@@ -124,7 +123,7 @@ export function ProjectProvider({ children }) {
     );
 
     if (error) {
-      console.error('Failed to delete project:', error.message);
+      // Failed to delete project
       return;
     }
 

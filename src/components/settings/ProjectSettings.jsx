@@ -65,7 +65,7 @@ export default function ProjectSettings() {
               </div>
               <div>
                 <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-300 mb-1">Webhook URL</label>
-                <p className="text-sm text-surface-50 font-mono break-all">{activeProject.webhookUrl}</p>
+                <p className="text-sm text-surface-300 font-mono">Configured by admin</p>
               </div>
               <div>
                 <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-300 mb-1">Webhook Format</label>

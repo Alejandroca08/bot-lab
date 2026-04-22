@@ -44,7 +44,7 @@ export default function ClientManager() {
       const { data: authData, error: authError } = await authSignUpDirect(
         inviteForm.email,
         inviteForm.password,
-        { name: inviteForm.name, role: 'client' }
+        { name: inviteForm.name }
       );
 
       if (authError) throw new Error(authError.message);
@@ -60,7 +60,7 @@ export default function ClientManager() {
       );
 
       if (updateError) {
-        console.error('Failed to assign project:', updateError.message);
+        // Failed to assign project
       }
 
       setShowInvite(false);

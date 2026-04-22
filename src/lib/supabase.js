@@ -26,10 +26,14 @@ export const supabase = createClient(
 // The supabase-js client's internal getSession() hangs on self-hosted instances
 // due to browser lock contention. This helper uses the token already in memory.
 export async function restQuery(path, { method = 'GET', body, prefer, single = false } = {}, token) {
+  if (!token) {
+    return { data: null, error: { message: 'No auth token available' } };
+  }
+
   const headers = {
     'Content-Type': 'application/json',
     'apikey': supabaseAnonKey,
-    'Authorization': `Bearer ${token || supabaseAnonKey}`,
+    'Authorization': `Bearer ${token}`,
   };
   if (prefer) headers['Prefer'] = prefer;
 
@@ -42,9 +46,7 @@ export async function restQuery(path, { method = 'GET', body, prefer, single = f
   const text = await res.text();
 
   if (!res.ok) {
-    let msg;
-    try { msg = JSON.parse(text).message || text; } catch { msg = text; }
-    return { data: null, error: { message: `HTTP ${res.status}: ${msg}` } };
+    return { data: null, error: { message: `Request failed (${res.status})` } };
   }
 
   if (!text) return { data: null, error: null };
@@ -61,6 +63,9 @@ export async function restQuery(path, { method = 'GET', body, prefer, single = f
 // Auth signup via direct GoTrue API — does NOT change the current browser session.
 // Used by admin to create client accounts without logging themselves out.
 export async function authSignUpDirect(email, password, metadata = {}) {
+  // Strip role from metadata — role is always 'client', enforced by DB trigger
+  const { role, ...safeMetadata } = metadata;
+
   const res = await fetch(`${supabaseUrl}/auth/v1/signup`, {
     method: 'POST',
     headers: {
@@ -70,7 +75,7 @@ export async function authSignUpDirect(email, password, metadata = {}) {
     body: JSON.stringify({
       email,
       password,
-      data: metadata,
+      data: safeMetadata,
     }),
   });
 

@@ -95,8 +95,14 @@ CREATE POLICY "Users see own profile" ON profiles FOR SELECT
   USING (id = auth.uid() OR is_admin());
 CREATE POLICY "Admin manages profiles" ON profiles FOR ALL
   USING (is_admin());
-CREATE POLICY "Users update own profile" ON profiles FOR UPDATE
-  USING (id = auth.uid());
+-- Clients can only update their own name. Role and project_id changes require admin.
+CREATE POLICY "Users update own name" ON profiles FOR UPDATE
+  USING (id = auth.uid())
+  WITH CHECK (
+    id = auth.uid()
+    AND role = (SELECT role FROM profiles WHERE id = auth.uid())
+    AND project_id IS NOT DISTINCT FROM (SELECT project_id FROM profiles WHERE id = auth.uid())
+  );
 
 -- Projects
 CREATE POLICY "Client sees assigned project" ON projects FOR SELECT
@@ -152,11 +158,13 @@ CREATE POLICY "Delete own annotations" ON annotations FOR DELETE
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Always default to 'client' role. Role must be changed by an admin via SQL.
+  -- Never read role from user-supplied metadata to prevent privilege escalation.
   INSERT INTO profiles (id, name, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'client')
+    'client'
   );
   RETURN NEW;
 END;
