@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from '../../contexts/LanguageContext';
 import VoiceRecorder from './VoiceRecorder';
 import ImageAttachment from './ImageAttachment';
 
 export default function MessageInput({ onSend }) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [showImagePicker, setShowImagePicker] = useState(false);
   const inputRef = useRef(null);
@@ -60,7 +62,7 @@ export default function MessageInput({ onSend }) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={t('input.placeholder')}
             rows={1}
             className="w-full bg-transparent px-4 py-2.5 text-sm text-surface-50 placeholder:text-surface-300 resize-none focus:outline-none max-h-32"
             style={{ minHeight: '40px' }}

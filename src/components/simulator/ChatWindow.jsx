@@ -1,27 +1,31 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { ConversationContext } from '../../contexts/ConversationContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import AgentPanel from './AgentPanel';
 import BotStatusIndicator from './BotStatusIndicator';
 import PasteResponseModal from './PasteResponseModal';
+import NewConversationModal from './NewConversationModal';
 import ConversationList from './ConversationList';
 import { useWebhook } from '../../hooks/useWebhook';
 import { buildInboundTextPayload, buildInboundImagePayload, buildInboundAudioPayload } from '../../utils/payloadBuilders';
 import { generateMessageId } from '../../utils/idGenerators';
 
 export default function ChatWindow() {
+  const { t } = useTranslation();
   const { activeProject } = useContext(ProjectContext);
   const {
     activeConversation, conversations, setActiveConversationId,
     createConversation, addMessage, updateMessageStatus,
-    setBotStatus, getConversationsForProject, deleteConversation,
+    setBotStatus, getConversationsForProject, updateConversationName, deleteConversation,
   } = useContext(ConversationContext);
   const { sendPayload } = useWebhook();
   const [agentPanelOpen, setAgentPanelOpen] = useState(true);
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
   const [showConversations, setShowConversations] = useState(false);
+  const [newConvModalOpen, setNewConvModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   const projectConversations = activeProject ? getConversationsForProject(activeProject.id) : [];
@@ -39,20 +43,20 @@ export default function ChatWindow() {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">No Project Selected</h3>
-          <p className="text-sm text-surface-300">Select or create a project in Settings first</p>
+          <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">{t('chat.noProject')}</h3>
+          <p className="text-sm text-surface-300">{t('chat.noProjectDesc')}</p>
         </div>
       </div>
     );
   }
 
-  const handleNewConversation = async () => {
-    const phone = activeProject.testPhoneNumbers[0] || '+1234567890';
-    const conv = await createConversation(activeProject.id, phone, 'Test Customer');
+  const handleNewConversation = async (phone, customerName) => {
+    const conv = await createConversation(activeProject.id, phone, customerName);
     if (conv) {
       setActiveConversationId(conv.id);
     }
     setShowConversations(false);
+    setNewConvModalOpen(false);
   };
 
   const handleSendMessage = async (content, type = 'text', metadata = {}) => {
@@ -150,7 +154,7 @@ export default function ChatWindow() {
                 <p className="text-[10px] font-mono text-surface-300">{activeConversation.simulatedPhoneNumber}</p>
               </div>
             ) : (
-              <span className="text-sm text-surface-300">Select or create a conversation</span>
+              <span className="text-sm text-surface-300">{t('chat.selectConversation')}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -163,7 +167,7 @@ export default function ChatWindow() {
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
               </svg>
-              Paste Response
+              {t('chat.pasteResponse')}
             </button>
             <button
               onClick={() => setAgentPanelOpen(!agentPanelOpen)}
@@ -177,7 +181,7 @@ export default function ChatWindow() {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              Agent
+              {t('chat.agent')}
             </button>
           </div>
         </div>
@@ -188,8 +192,9 @@ export default function ChatWindow() {
             conversations={projectConversations}
             activeId={activeConversation?.id}
             onSelect={(id) => { setActiveConversationId(id); setShowConversations(false); }}
-            onNew={handleNewConversation}
+            onNew={() => { setShowConversations(false); setNewConvModalOpen(true); }}
             onDelete={deleteConversation}
+            onRename={updateConversationName}
             onClose={() => setShowConversations(false)}
           />
         )}
@@ -199,13 +204,13 @@ export default function ChatWindow() {
           {!activeConversation ? (
             <div className="h-full flex items-center justify-center">
               <button
-                onClick={handleNewConversation}
+                onClick={() => setNewConvModalOpen(true)}
                 className="flex items-center gap-2 bg-accent/10 text-accent border border-accent/20 px-5 py-3 rounded-xl font-mono text-xs uppercase tracking-wider hover:bg-accent/20 transition-all"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                New Conversation
+                {t('chat.newConversation')}
               </button>
             </div>
           ) : (
@@ -237,6 +242,12 @@ export default function ChatWindow() {
         isOpen={pasteModalOpen}
         onClose={() => setPasteModalOpen(false)}
         onPaste={handlePasteResponse}
+      />
+
+      <NewConversationModal
+        isOpen={newConvModalOpen}
+        onClose={() => setNewConvModalOpen(false)}
+        onCreate={handleNewConversation}
       />
     </div>
   );

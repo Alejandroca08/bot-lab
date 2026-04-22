@@ -1,6 +1,7 @@
 import { useContext, useState } from 'react';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { ConversationContext } from '../../contexts/ConversationContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import AnnotatedMessage from './AnnotatedMessage';
 import ConversationSummary from './ConversationSummary';
 import ExportOptions from './ExportOptions';
@@ -8,6 +9,7 @@ import ExportOptions from './ExportOptions';
 export default function TestLabView() {
   const { activeProject } = useContext(ProjectContext);
   const { conversations, activeConversation, setActiveConversationId, getConversationsForProject } = useContext(ConversationContext);
+  const { t } = useTranslation();
   const [showExport, setShowExport] = useState(false);
 
   const projectConversations = activeProject ? getConversationsForProject(activeProject.id) : [];
@@ -16,8 +18,8 @@ export default function TestLabView() {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">No Project Selected</h3>
-          <p className="text-sm text-surface-300">Select a project first</p>
+          <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">{t('testlab.noProject')}</h3>
+          <p className="text-sm text-surface-300">{t('testlab.noProjectDesc')}</p>
         </div>
       </div>
     );
@@ -29,8 +31,8 @@ export default function TestLabView() {
       <div className="bg-surface-800 border-b border-surface-400/50 px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <div>
-            <h2 className="font-mono text-sm font-bold text-surface-50 tracking-wider uppercase">Test Lab</h2>
-            <p className="text-[11px] text-surface-300 mt-0.5">Review and annotate conversations</p>
+            <h2 className="font-mono text-sm font-bold text-surface-50 tracking-wider uppercase">{t('testlab.title')}</h2>
+            <p className="text-[11px] text-surface-300 mt-0.5">{t('testlab.subtitle')}</p>
           </div>
           {/* Conversation picker */}
           <select
@@ -38,7 +40,7 @@ export default function TestLabView() {
             onChange={(e) => setActiveConversationId(e.target.value || null)}
             className="bg-surface-700 border border-surface-400 rounded-lg px-3 py-1.5 text-xs text-surface-50 font-mono focus:outline-none focus:border-accent"
           >
-            <option value="">Select conversation...</option>
+            <option value="">{t('testlab.selectConversation')}</option>
             {projectConversations.map((conv) => (
               <option key={conv.id} value={conv.id}>
                 {conv.customerName} — {conv.messages.length} msgs — {new Date(conv.createdAt).toLocaleDateString()}
@@ -56,7 +58,7 @@ export default function TestLabView() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Export
+            {t('testlab.export')}
           </button>
         )}
       </div>
@@ -84,7 +86,7 @@ export default function TestLabView() {
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-surface-300">Select a conversation to review</p>
+          <p className="text-sm text-surface-300">{t('testlab.selectToReview')}</p>
         </div>
       )}
     </div>

@@ -2,10 +2,12 @@ import { useState, useEffect, useContext } from 'react';
 import { restQuery, authSignUpDirect } from '../../lib/supabase';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function ClientManager() {
   const { projects } = useContext(ProjectContext);
   const { session } = useAuth();
+  const { t } = useTranslation();
   const token = session?.access_token;
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ export default function ClientManager() {
       setInviteForm({ name: '', email: '', projectId: '', password: '' });
       await loadClients();
     } catch (err) {
-      setInviteError(err.message || 'Failed to create client');
+      setInviteError(err.message || t('clients.createError'));
     } finally {
       setInviteLoading(false);
     }
@@ -88,8 +90,8 @@ export default function ClientManager() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="font-mono text-lg font-bold text-surface-50 tracking-wider uppercase">Clients</h2>
-            <p className="text-sm text-surface-200 mt-1">Manage client access and project assignments</p>
+            <h2 className="font-mono text-lg font-bold text-surface-50 tracking-wider uppercase">{t('clients.title')}</h2>
+            <p className="text-sm text-surface-200 mt-1">{t('clients.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowInvite(!showInvite)}
@@ -98,32 +100,32 @@ export default function ClientManager() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Invite Client
+            {t('clients.invite')}
           </button>
         </div>
 
         {/* Invite form */}
         {showInvite && (
           <form onSubmit={handleInvite} className="bg-surface-800 border border-surface-400/50 rounded-xl p-6 mb-6 animate-fade-in">
-            <h3 className="font-mono text-sm uppercase tracking-wider text-accent mb-4">Invite New Client</h3>
+            <h3 className="font-mono text-sm uppercase tracking-wider text-accent mb-4">{t('clients.inviteTitle')}</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">Client Name</label>
+                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('clients.name')}</label>
                 <input
                   value={inviteForm.name}
                   onChange={(e) => setInviteForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Maria"
+                  placeholder={t('clients.namePlaceholder')}
                   className="w-full bg-surface-700 border border-surface-400 rounded-lg px-3 py-2.5 text-sm text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent transition-colors"
                   required
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">Email</label>
+                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('clients.email')}</label>
                 <input
                   type="email"
                   value={inviteForm.email}
                   onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="client@email.com"
+                  placeholder={t('clients.emailPlaceholder')}
                   className="w-full bg-surface-700 border border-surface-400 rounded-lg px-3 py-2.5 text-sm text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent transition-colors"
                   required
                 />
@@ -131,26 +133,26 @@ export default function ClientManager() {
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">Assign Project</label>
+                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('clients.assignProject')}</label>
                 <select
                   value={inviteForm.projectId}
                   onChange={(e) => setInviteForm(prev => ({ ...prev, projectId: e.target.value }))}
                   className="w-full bg-surface-700 border border-surface-400 rounded-lg px-3 py-2.5 text-sm text-surface-50 focus:outline-none focus:border-accent transition-colors"
                   required
                 >
-                  <option value="">Select project...</option>
+                  <option value="">{t('clients.selectProject')}</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">Temporary Password</label>
+                <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('clients.tempPassword')}</label>
                 <input
                   type="text"
                   value={inviteForm.password}
                   onChange={(e) => setInviteForm(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Min 6 characters"
+                  placeholder={t('clients.tempPasswordPlaceholder')}
                   className="w-full bg-surface-700 border border-surface-400 rounded-lg px-3 py-2.5 text-sm text-surface-50 font-mono placeholder:text-surface-300 focus:outline-none focus:border-accent transition-colors"
                   required
                   minLength={6}
@@ -161,9 +163,9 @@ export default function ClientManager() {
               <div className="mb-4 px-3 py-2 rounded-lg bg-danger/10 border border-danger/20 text-danger text-xs">{inviteError}</div>
             )}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 rounded-lg text-xs font-mono uppercase text-surface-200 hover:text-surface-50 transition-colors">Cancel</button>
+              <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 rounded-lg text-xs font-mono uppercase text-surface-200 hover:text-surface-50 transition-colors">{t('clients.cancel')}</button>
               <button type="submit" disabled={inviteLoading} className="px-5 py-2 rounded-lg bg-accent text-surface-900 text-xs font-mono uppercase font-semibold hover:bg-accent-hover transition-all disabled:opacity-50">
-                {inviteLoading ? 'Creating...' : 'Create Client'}
+                {inviteLoading ? t('clients.creating') : t('clients.create')}
               </button>
             </div>
           </form>
@@ -181,8 +183,8 @@ export default function ClientManager() {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
             </div>
-            <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">No Clients Yet</h3>
-            <p className="text-sm text-surface-300">Invite your first client to start collecting feedback</p>
+            <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">{t('clients.none')}</h3>
+            <p className="text-sm text-surface-300">{t('clients.noneDesc')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -204,7 +206,7 @@ export default function ClientManager() {
                         onChange={(e) => handleAssignProject(client.id, e.target.value)}
                         className="bg-surface-700 border border-surface-400 rounded-lg px-2 py-1 text-xs text-surface-50 focus:outline-none focus:border-accent"
                       >
-                        <option value="">Assign project...</option>
+                        <option value="">{t('clients.assignPlaceholder')}</option>
                         {projects.map((p) => (
                           <option key={p.id} value={p.id}>{p.name}</option>
                         ))}

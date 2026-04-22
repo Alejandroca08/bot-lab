@@ -1,9 +1,11 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { ConversationContext } from '../../contexts/ConversationContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { REACTIVATION_KEYWORD } from '../../utils/constants';
 import MessageBubble from './MessageBubble';
 
 export default function AgentPanel({ conversation, project, onClose }) {
+  const { t } = useTranslation();
   const { addMessage, updateMessageStatus, setBotStatus } = useContext(ConversationContext);
   const [text, setText] = useState('');
   const messagesEndRef = useRef(null);
@@ -64,7 +66,7 @@ export default function AgentPanel({ conversation, project, onClose }) {
           </div>
           <div>
             <h4 className="text-xs font-semibold text-purple-200">{project.clientName}</h4>
-            <p className="text-[10px] font-mono text-purple-300/60">Agent Panel</p>
+            <p className="text-[10px] font-mono text-purple-300/60">{t('agentPanel.title')}</p>
           </div>
         </div>
         <button onClick={onClose} className="p-1.5 rounded-lg text-surface-300 hover:text-surface-50 hover:bg-surface-700 transition-all">
@@ -82,7 +84,7 @@ export default function AgentPanel({ conversation, project, onClose }) {
         }`}
       >
         <div className={`w-2 h-2 rounded-full ${conversation.botStatus === 'active' ? 'bg-accent' : 'bg-danger animate-pulse-recording'}`} />
-        {conversation.botStatus === 'active' ? 'Bot activado' : `Bot desactivado — ${project.clientName} está respondiendo`}
+        {conversation.botStatus === 'active' ? t('agentPanel.botActive') : t('agentPanel.botDeactivated', { name: project.clientName })}
       </div>
 
       {/* Messages (mirrored) */}
@@ -119,7 +121,7 @@ export default function AgentPanel({ conversation, project, onClose }) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Reply as ${project.clientName}...`}
+            placeholder={t('agentPanel.replyAs', { name: project.clientName })}
             rows={1}
             className="flex-1 bg-surface-700 rounded-lg border border-purple-500/20 px-3 py-2 text-xs text-surface-50 placeholder:text-surface-300 resize-none focus:outline-none focus:border-purple-400/40 max-h-20"
           />

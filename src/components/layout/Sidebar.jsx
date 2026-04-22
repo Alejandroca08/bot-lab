@@ -1,23 +1,25 @@
 import { useContext, useState, useEffect } from 'react';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { supabase } from '../../lib/supabase';
 import { VIEWS } from '../../utils/constants';
 
 const NAV_ITEMS = [
-  { view: VIEWS.SETTINGS, label: 'Projects', icon: SettingsIcon },
-  { view: VIEWS.SIMULATOR, label: 'Simulator', icon: ChatIcon },
-  { view: VIEWS.TESTLAB, label: 'Test Lab', icon: TestLabIcon },
+  { view: VIEWS.SETTINGS, labelKey: 'nav.projects', icon: SettingsIcon },
+  { view: VIEWS.SIMULATOR, labelKey: 'nav.simulator', icon: ChatIcon },
+  { view: VIEWS.TESTLAB, labelKey: 'nav.testlab', icon: TestLabIcon },
 ];
 
 const ADMIN_NAV_ITEMS = [
-  { view: VIEWS.CLIENTS, label: 'Clients', icon: ClientsIcon },
-  { view: VIEWS.DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
+  { view: VIEWS.CLIENTS, labelKey: 'nav.clients', icon: ClientsIcon },
+  { view: VIEWS.DASHBOARD, labelKey: 'nav.dashboard', icon: DashboardIcon },
 ];
 
 export default function Sidebar({ activeView, onViewChange }) {
   const { projects, activeProject, setActiveProjectId } = useContext(ProjectContext);
   const { signOut, profile } = useAuth();
+  const { t, toggleLang } = useTranslation();
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Subscribe to new annotations for badge count
@@ -59,14 +61,14 @@ export default function Sidebar({ activeView, onViewChange }) {
           </div>
           <div>
             <h1 className="font-mono text-sm font-bold text-surface-50 tracking-wider">BOTLAB</h1>
-            <p className="text-[10px] text-surface-300 font-mono tracking-wider">ADMIN PANEL</p>
+            <p className="text-[10px] text-surface-300 font-mono tracking-wider">{t('nav.adminPanel')}</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map(({ view, label, icon: Icon }) => (
+        {NAV_ITEMS.map(({ view, labelKey, icon: Icon }) => (
           <button
             key={view}
             onClick={() => onViewChange(view)}
@@ -77,14 +79,14 @@ export default function Sidebar({ activeView, onViewChange }) {
               }`}
           >
             <Icon active={activeView === view} />
-            <span className="font-mono text-xs uppercase tracking-wider">{label}</span>
+            <span className="font-mono text-xs uppercase tracking-wider">{t(labelKey)}</span>
           </button>
         ))}
 
         {/* Admin-only nav items */}
         <div className="pt-3 mt-3 border-t border-surface-400/30">
           <p className="font-mono text-[10px] uppercase tracking-widest text-surface-300 px-3 mb-2">Admin</p>
-          {ADMIN_NAV_ITEMS.map(({ view, label, icon: Icon }) => (
+          {ADMIN_NAV_ITEMS.map(({ view, labelKey, icon: Icon }) => (
             <button
               key={view}
               onClick={() => onViewChange(view)}
@@ -95,7 +97,7 @@ export default function Sidebar({ activeView, onViewChange }) {
                 }`}
             >
               <Icon active={activeView === view} />
-              <span className="font-mono text-xs uppercase tracking-wider">{label}</span>
+              <span className="font-mono text-xs uppercase tracking-wider">{t(labelKey)}</span>
               {view === VIEWS.DASHBOARD && unreadCount > 0 && (
                 <span className="ml-auto bg-severity-critical text-white text-[9px] font-mono font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                   {unreadCount > 99 ? '99+' : unreadCount}
@@ -108,9 +110,9 @@ export default function Sidebar({ activeView, onViewChange }) {
 
       {/* Project selector */}
       <div className="px-3 mt-4">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-surface-300 px-1 mb-2">Active Project</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-surface-300 px-1 mb-2">{t('nav.activeProject')}</p>
         {projects.length === 0 ? (
-          <p className="text-xs text-surface-300 px-1">No projects yet</p>
+          <p className="text-xs text-surface-300 px-1">{t('nav.noProjects')}</p>
         ) : (
           <div className="space-y-1">
             {projects.map((project) => (
@@ -140,6 +142,12 @@ export default function Sidebar({ activeView, onViewChange }) {
             </span>
           </div>
           <span className="text-xs text-surface-200 truncate">{profile?.name || 'Admin'}</span>
+          <button
+            onClick={toggleLang}
+            className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-surface-700 text-surface-200 hover:text-surface-50 hover:bg-surface-600 border border-surface-400/50 transition-all"
+          >
+            {t('lang.toggle')}
+          </button>
         </div>
         <button
           onClick={signOut}
@@ -150,7 +158,7 @@ export default function Sidebar({ activeView, onViewChange }) {
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          Sign Out
+          {t('nav.signOut')}
         </button>
       </div>
     </aside>

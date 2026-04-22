@@ -1,12 +1,14 @@
 import { useState, useContext } from 'react';
 import { ConversationContext } from '../../contexts/ConversationContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import AnnotationForm from './AnnotationForm';
 
 export default function AnnotatedMessage({ message, conversationId, annotations }) {
   const { removeAnnotation } = useContext(ConversationContext);
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
 
-  const senderLabel = message.sender === 'customer' ? 'Customer' : message.sender === 'bot' ? 'Bot' : 'Agent';
+  const senderLabel = message.sender === 'customer' ? t('sender.customer') : message.sender === 'bot' ? t('sender.bot') : t('sender.agent');
   const senderColor = message.sender === 'customer' ? 'text-blue-400' : message.sender === 'bot' ? 'text-accent' : 'text-purple-400';
   const time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -45,7 +47,7 @@ export default function AnnotatedMessage({ message, conversationId, annotations 
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               </svg>
               <span className="text-xs text-surface-200 font-mono">
-                Voice memo{message.metadata?.duration ? ` (${Math.floor(message.metadata.duration)}s)` : ''}
+                {t('annotatedMsg.voiceMemo')}{message.metadata?.duration ? ` (${Math.floor(message.metadata.duration)}s)` : ''}
               </span>
             </div>
           )}
@@ -71,7 +73,7 @@ export default function AnnotatedMessage({ message, conversationId, annotations 
                     </div>
                     <p className="text-xs text-surface-100">{ann.note}</p>
                     {ann.suggestion && (
-                      <p className="text-xs text-accent/70 mt-1 italic">Suggestion: {ann.suggestion}</p>
+                      <p className="text-xs text-accent/70 mt-1 italic">{t('annotatedMsg.suggestion') + ':'} {ann.suggestion}</p>
                     )}
                   </div>
                   <button

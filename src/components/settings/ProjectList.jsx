@@ -1,4 +1,7 @@
+import { useTranslation } from '../../contexts/LanguageContext';
+
 export default function ProjectList({ projects, activeProjectId, onSelect, onEdit, onDelete }) {
+  const { t } = useTranslation();
   if (projects.length === 0) {
     return (
       <div className="text-center py-20">
@@ -7,8 +10,8 @@ export default function ProjectList({ projects, activeProjectId, onSelect, onEdi
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </div>
-        <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">No Projects Yet</h3>
-        <p className="text-sm text-surface-300">Create your first project to start testing WhatsApp bots</p>
+        <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">{t('projects.none')}</h3>
+        <p className="text-sm text-surface-300">{t('projects.noneDesc')}</p>
       </div>
     );
   }
@@ -31,11 +34,11 @@ export default function ProjectList({ projects, activeProjectId, onSelect, onEdi
                 <h3 className="text-sm font-semibold text-surface-50 truncate">{project.name}</h3>
                 {project.id === activeProjectId && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-accent/15 text-accent border border-accent/20">
-                    ACTIVE
+                    {t('projects.active')}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-surface-300 font-mono mb-3">Agent: {project.clientName}</p>
+              <p className="text-xs text-surface-300 font-mono mb-3">{t('projects.agent')}: {project.clientName}</p>
               <div className="flex items-center gap-4 text-[11px] text-surface-300 font-mono">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent/60"></span>
@@ -64,7 +67,7 @@ export default function ProjectList({ projects, activeProjectId, onSelect, onEdi
                 </svg>
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); if (confirm('Delete this project?')) onDelete(project.id); }}
+                onClick={(e) => { e.stopPropagation(); if (confirm(t('projects.confirmDelete'))) onDelete(project.id); }}
                 className="p-2 rounded-lg text-surface-300 hover:text-danger hover:bg-danger/10 transition-all"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -1,4 +1,7 @@
+import { useTranslation } from '../../contexts/LanguageContext';
+
 export default function ConversationSummary({ conversation }) {
+  const { t } = useTranslation();
   const { messages, annotations = [], botStatus, createdAt } = conversation;
 
   const customerMsgs = messages.filter(m => m.sender === 'customer').length;
@@ -28,36 +31,36 @@ export default function ConversationSummary({ conversation }) {
 
   return (
     <div className="bg-surface-800 border border-surface-400/50 rounded-xl p-5">
-      <h3 className="font-mono text-xs uppercase tracking-wider text-surface-200 mb-4">Conversation Summary</h3>
+      <h3 className="font-mono text-xs uppercase tracking-wider text-surface-200 mb-4">{t('summary.title')}</h3>
 
       <div className="grid grid-cols-4 gap-4 mb-4">
-        <Stat label="Customer" value={customerMsgs} color="text-blue-400" />
-        <Stat label="Bot" value={botMsgs} color="text-accent" />
-        <Stat label="Agent" value={agentMsgs} color="text-purple-400" />
-        <Stat label="Duration" value={duration || '—'} color="text-surface-50" />
+        <Stat label={t('summary.customer')} value={customerMsgs} color="text-blue-400" />
+        <Stat label={t('summary.bot')} value={botMsgs} color="text-accent" />
+        <Stat label={t('summary.agent')} value={agentMsgs} color="text-purple-400" />
+        <Stat label={t('summary.duration')} value={duration || '—'} color="text-surface-50" />
       </div>
 
       {annotations.length > 0 && (
         <>
           <div className="border-t border-surface-400/30 pt-3 mb-3">
-            <h4 className="font-mono text-[10px] uppercase tracking-widest text-surface-300 mb-2">Annotations ({annotations.length})</h4>
+            <h4 className="font-mono text-[10px] uppercase tracking-widest text-surface-300 mb-2">{t('summary.annotations')} ({annotations.length})</h4>
             <div className="flex gap-3">
               {criticalCount > 0 && (
                 <span className="flex items-center gap-1.5 text-xs">
                   <span className="w-2 h-2 rounded-full bg-severity-critical" />
-                  <span className="text-severity-critical font-mono">{criticalCount} critical</span>
+                  <span className="text-severity-critical font-mono">{criticalCount} {t('sev.critical').toLowerCase()}</span>
                 </span>
               )}
               {mediumCount > 0 && (
                 <span className="flex items-center gap-1.5 text-xs">
                   <span className="w-2 h-2 rounded-full bg-severity-medium" />
-                  <span className="text-severity-medium font-mono">{mediumCount} medium</span>
+                  <span className="text-severity-medium font-mono">{mediumCount} {t('sev.medium').toLowerCase()}</span>
                 </span>
               )}
               {minorCount > 0 && (
                 <span className="flex items-center gap-1.5 text-xs">
                   <span className="w-2 h-2 rounded-full bg-severity-minor" />
-                  <span className="text-severity-minor font-mono">{minorCount} minor</span>
+                  <span className="text-severity-minor font-mono">{minorCount} {t('sev.minor').toLowerCase()}</span>
                 </span>
               )}
             </div>
@@ -76,8 +79,8 @@ export default function ConversationSummary({ conversation }) {
       )}
 
       <div className="border-t border-surface-400/30 pt-3 mt-3 flex items-center gap-4 text-[10px] font-mono text-surface-300">
-        <span>Bot: {botStatus === 'active' ? '🟢 Active' : '🔴 Deactivated'}</span>
-        <span>Started: {new Date(createdAt).toLocaleString()}</span>
+        <span>Bot: {botStatus === 'active' ? `🟢 ${t('summary.botActive')}` : `🔴 ${t('summary.botDeactivated')}`}</span>
+        <span>{t('summary.started') + ':'} {new Date(createdAt).toLocaleString()}</span>
       </div>
     </div>
   );

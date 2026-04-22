@@ -32,21 +32,21 @@ export const MESSAGE_STATUS = {
 };
 
 export const ANNOTATION_CATEGORIES = [
-  { value: "tone", label: "Tone" },
-  { value: "accuracy", label: "Accuracy" },
-  { value: "flow", label: "Flow" },
-  { value: "missing_info", label: "Missing Info" },
-  { value: "too_long", label: "Too Long" },
-  { value: "too_short", label: "Too Short" },
-  { value: "wrong_language", label: "Wrong Language" },
-  { value: "hallucination", label: "Hallucination" },
-  { value: "other", label: "Other" },
+  { value: "tone", labelKey: "cat.tone" },
+  { value: "accuracy", labelKey: "cat.accuracy" },
+  { value: "flow", labelKey: "cat.flow" },
+  { value: "missing_info", labelKey: "cat.missing_info" },
+  { value: "too_long", labelKey: "cat.too_long" },
+  { value: "too_short", labelKey: "cat.too_short" },
+  { value: "wrong_language", labelKey: "cat.wrong_language" },
+  { value: "hallucination", labelKey: "cat.hallucination" },
+  { value: "other", labelKey: "cat.other" },
 ];
 
 export const ANNOTATION_SEVERITIES = [
-  { value: "minor", label: "Minor", color: "#FBBF24" },
-  { value: "medium", label: "Medium", color: "#F97316" },
-  { value: "critical", label: "Critical", color: "#EF4444" },
+  { value: "minor", labelKey: "sev.minor", color: "#FBBF24" },
+  { value: "medium", labelKey: "sev.medium", color: "#F97316" },
+  { value: "critical", labelKey: "sev.critical", color: "#EF4444" },
 ];
 
 export const REACTIVATION_KEYWORD = "Listo✅";

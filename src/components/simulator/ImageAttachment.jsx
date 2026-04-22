@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function ImageAttachment({ onSelect, onCancel }) {
+  const { t } = useTranslation();
   const [preview, setPreview] = useState(null);
   const [caption, setCaption] = useState('');
   const fileRef = useRef(null);
@@ -41,7 +43,7 @@ export default function ImageAttachment({ onSelect, onCancel }) {
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          <p className="text-xs text-surface-300">Click to select an image</p>
+          <p className="text-xs text-surface-300">{t('image.selectPrompt')}</p>
           <input
             ref={fileRef}
             type="file"
@@ -69,7 +71,7 @@ export default function ImageAttachment({ onSelect, onCancel }) {
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Add a caption..."
+              placeholder={t('image.captionPlaceholder')}
               className="flex-1 bg-surface-600 rounded-lg px-3 py-2 text-xs text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent border border-transparent"
             />
             <button onClick={handleSend} className="p-2 rounded-lg bg-accent text-surface-900 hover:bg-accent-hover transition-all">

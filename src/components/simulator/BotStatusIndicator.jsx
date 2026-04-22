@@ -1,4 +1,7 @@
+import { useTranslation } from '../../contexts/LanguageContext';
+
 export default function BotStatusIndicator({ status }) {
+  const { t } = useTranslation();
   const isActive = status === 'active';
 
   return (
@@ -9,7 +12,7 @@ export default function BotStatusIndicator({ status }) {
       }`}
     >
       <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-accent' : 'bg-danger animate-pulse-recording'}`} />
-      {isActive ? 'Bot ON' : 'Bot OFF'}
+      {isActive ? t('botStatus.on') : t('botStatus.off')}
     </div>
   );
 }

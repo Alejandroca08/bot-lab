@@ -1,6 +1,8 @@
 import { useRef } from 'react';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function MessageBubble({ message, annotationCount }) {
+  const { t } = useTranslation();
   const { sender, type, content, timestamp, status, metadata } = message;
   const isOutgoing = sender === 'customer';
   const isAgent = sender === 'agent';
@@ -14,7 +16,7 @@ export default function MessageBubble({ message, annotationCount }) {
     return (
       <div className="flex justify-center my-3 animate-fade-in">
         <div className="bg-accent/10 border border-accent/20 text-accent text-xs font-mono px-4 py-2 rounded-full">
-          {message.metadata?.agentName || 'Agent'} reactivó el bot — {time}
+          {t('bubble.reactivated', { name: message.metadata?.agentName || t('sender.agent') })} — {time}
         </div>
       </div>
     );
@@ -41,7 +43,7 @@ export default function MessageBubble({ message, annotationCount }) {
         {/* Sender label for bot/agent */}
         {(isBot || isAgent) && (
           <p className={`text-[10px] font-mono font-semibold mb-1 ${isAgent ? 'text-purple-300' : 'text-accent'}`}>
-            {isAgent ? (metadata?.agentName || 'Agent') : 'Bot'}
+            {isAgent ? (metadata?.agentName || 'Agent') : t('bubble.bot')}
           </p>
         )}
 

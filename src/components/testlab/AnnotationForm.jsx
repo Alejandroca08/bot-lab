@@ -1,10 +1,12 @@
 import { useState, useContext } from 'react';
 import { ConversationContext } from '../../contexts/ConversationContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { ANNOTATION_CATEGORIES, ANNOTATION_SEVERITIES } from '../../utils/constants';
 import { generateUUID } from '../../utils/idGenerators';
 
 export default function AnnotationForm({ conversationId, messageId, onClose }) {
   const { addAnnotation } = useContext(ConversationContext);
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     category: '',
     severity: '',
@@ -33,21 +35,21 @@ export default function AnnotationForm({ conversationId, messageId, onClose }) {
     <form onSubmit={handleSubmit} className="ml-11 mr-8 mt-1 mb-2 p-3 bg-surface-700 rounded-xl border border-surface-400/50 animate-fade-in">
       <div className="flex gap-3 mb-3">
         <div className="flex-1">
-          <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">Category</label>
+          <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">{t('annotation.category')}</label>
           <select
             value={form.category}
             onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
             className="w-full bg-surface-600 border border-surface-400 rounded-lg px-2.5 py-2 text-xs text-surface-50 focus:outline-none focus:border-accent"
             required
           >
-            <option value="">Select...</option>
+            <option value="">{t('annotation.selectCategory')}</option>
             {ANNOTATION_CATEGORIES.map(c => (
-              <option key={c.value} value={c.value}>{c.label}</option>
+              <option key={c.value} value={c.value}>{t(c.labelKey)}</option>
             ))}
           </select>
         </div>
         <div className="flex-1">
-          <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">Severity</label>
+          <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">{t('annotation.severity')}</label>
           <div className="flex gap-1.5">
             {ANNOTATION_SEVERITIES.map(s => (
               <button
@@ -61,7 +63,7 @@ export default function AnnotationForm({ conversationId, messageId, onClose }) {
                   }`}
                 style={form.severity === s.value ? { color: s.color, backgroundColor: s.color + '15' } : {}}
               >
-                {s.label}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>
@@ -69,11 +71,11 @@ export default function AnnotationForm({ conversationId, messageId, onClose }) {
       </div>
 
       <div className="mb-2">
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">Note</label>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">{t('annotation.note')}</label>
         <textarea
           value={form.note}
           onChange={(e) => setForm(prev => ({ ...prev, note: e.target.value }))}
-          placeholder="What's the issue?"
+          placeholder={t('annotation.notePlaceholder')}
           rows={2}
           className="w-full bg-surface-600 border border-surface-400 rounded-lg px-2.5 py-2 text-xs text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent resize-none"
           required
@@ -81,11 +83,11 @@ export default function AnnotationForm({ conversationId, messageId, onClose }) {
       </div>
 
       <div className="mb-3">
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">Suggestion (optional)</label>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-1">{t('annotation.suggestion')}</label>
         <textarea
           value={form.suggestion}
           onChange={(e) => setForm(prev => ({ ...prev, suggestion: e.target.value }))}
-          placeholder="What should the bot have said?"
+          placeholder={t('annotation.suggestionPlaceholder')}
           rows={2}
           className="w-full bg-surface-600 border border-surface-400 rounded-lg px-2.5 py-2 text-xs text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent resize-none"
         />
@@ -93,14 +95,14 @@ export default function AnnotationForm({ conversationId, messageId, onClose }) {
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider text-surface-300 hover:text-surface-50 transition-colors">
-          Cancel
+          {t('annotation.cancel')}
         </button>
         <button
           type="submit"
           disabled={!form.category || !form.severity || !form.note.trim()}
           className="px-4 py-1.5 rounded-lg bg-warning/15 text-warning text-[10px] font-mono uppercase tracking-wider font-semibold hover:bg-warning/25 transition-all disabled:opacity-30 border border-warning/20"
         >
-          Add Annotation
+          {t('annotation.add')}
         </button>
       </div>
     </form>

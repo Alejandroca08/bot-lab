@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase, restQuery } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function FeedbackDashboard() {
   const { session } = useAuth();
+  const { t, lang } = useTranslation();
   const token = session?.access_token;
   const [annotations, setAnnotations] = useState([]);
   const [stats, setStats] = useState({ total: 0, critical: 0, medium: 0, minor: 0 });
@@ -83,11 +85,11 @@ export default function FeedbackDashboard() {
   const timeAgo = (date) => {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return t('dashboard.timeJustNow');
+    if (mins < 60) return lang === 'es' ? `hace ${mins}m` : `${mins}m ago`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    if (hours < 24) return lang === 'es' ? `hace ${hours}h` : `${hours}h ago`;
+    return lang === 'es' ? `hace ${Math.floor(hours / 24)}d` : `${Math.floor(hours / 24)}d ago`;
   };
 
   return (
@@ -95,28 +97,28 @@ export default function FeedbackDashboard() {
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h2 className="font-mono text-lg font-bold text-surface-50 tracking-wider uppercase">Feedback Dashboard</h2>
-          <p className="text-sm text-surface-200 mt-1">Real-time client annotations across all projects</p>
+          <h2 className="font-mono text-lg font-bold text-surface-50 tracking-wider uppercase">{t('dashboard.title')}</h2>
+          <p className="text-sm text-surface-200 mt-1">{t('dashboard.subtitle')}</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total" value={stats.total} color="text-surface-50" />
-          <StatCard label="Critical" value={stats.critical} color="text-severity-critical" />
-          <StatCard label="Medium" value={stats.medium} color="text-severity-medium" />
-          <StatCard label="Minor" value={stats.minor} color="text-severity-minor" />
+          <StatCard label={t('dashboard.total')} value={stats.total} color="text-surface-50" />
+          <StatCard label={t('dashboard.critical')} value={stats.critical} color="text-severity-critical" />
+          <StatCard label={t('dashboard.medium')} value={stats.medium} color="text-severity-medium" />
+          <StatCard label={t('dashboard.minor')} value={stats.minor} color="text-severity-minor" />
         </div>
 
         {/* Filter */}
         <div className="flex gap-1 mb-6 bg-surface-800 rounded-lg p-0.5 w-fit border border-surface-400/50">
-          {['all', 'critical', 'medium', 'minor'].map((sev) => (
+          {[{ key: 'all', labelKey: 'dashboard.filterAll' }, { key: 'critical', labelKey: 'dashboard.critical' }, { key: 'medium', labelKey: 'dashboard.medium' }, { key: 'minor', labelKey: 'dashboard.minor' }].map(({ key, labelKey }) => (
             <button
-              key={sev}
-              onClick={() => setFilter({ severity: sev })}
+              key={key}
+              onClick={() => setFilter({ severity: key })}
               className={`px-3 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider transition-all
-                ${filter.severity === sev ? 'bg-surface-600 text-surface-50' : 'text-surface-300 hover:text-surface-50'}`}
+                ${filter.severity === key ? 'bg-surface-600 text-surface-50' : 'text-surface-300 hover:text-surface-50'}`}
             >
-              {sev}
+              {t(labelKey)}
             </button>
           ))}
         </div>
@@ -128,8 +130,8 @@ export default function FeedbackDashboard() {
           </div>
         ) : filteredAnnotations.length === 0 ? (
           <div className="text-center py-20">
-            <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">No Annotations Yet</h3>
-            <p className="text-sm text-surface-300">Client feedback will appear here in real-time</p>
+            <h3 className="font-mono text-sm text-surface-100 uppercase tracking-wider mb-2">{t('dashboard.none')}</h3>
+            <p className="text-sm text-surface-300">{t('dashboard.noneDesc')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -157,7 +159,7 @@ export default function FeedbackDashboard() {
                 <p className="text-sm text-surface-50 mb-2">{ann.note}</p>
 
                 {ann.suggestion && (
-                  <p className="text-xs text-accent/70 italic mb-2">Suggestion: {ann.suggestion}</p>
+                  <p className="text-xs text-accent/70 italic mb-2">{t('dashboard.suggestion')}: {ann.suggestion}</p>
                 )}
 
                 {/* Context */}
@@ -171,7 +173,7 @@ export default function FeedbackDashboard() {
                   </div>
                   <p className="text-xs text-surface-200 truncate">
                     <span className={`font-semibold ${ann.messages?.sender === 'bot' ? 'text-accent' : 'text-blue-400'}`}>
-                      {ann.messages?.sender === 'bot' ? 'Bot' : ann.messages?.sender === 'customer' ? 'Customer' : 'Agent'}:
+                      {ann.messages?.sender === 'bot' ? t('sender.bot') : ann.messages?.sender === 'customer' ? t('sender.customer') : t('sender.agent')}:
                     </span>
                     {' '}{ann.messages?.type === 'text' ? ann.messages?.content : `[${ann.messages?.type}]`}
                   </p>

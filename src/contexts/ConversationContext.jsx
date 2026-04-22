@@ -202,6 +202,20 @@ export function ConversationProvider({ children }) {
     );
   }, [token]);
 
+  const updateConversationName = useCallback(async (id, newName) => {
+    const { error } = await restQuery(
+      `/rest/v1/conversations?id=eq.${id}`,
+      { method: 'PATCH', body: { customer_name: newName }, prefer: 'return=minimal' },
+      token
+    );
+
+    if (error) return;
+
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, customerName: newName } : c))
+    );
+  }, [token]);
+
   const deleteConversation = useCallback(async (id) => {
     const { error } = await restQuery(
       `/rest/v1/conversations?id=eq.${id}`,
@@ -240,13 +254,14 @@ export function ConversationProvider({ children }) {
     setBotStatus,
     addAnnotation,
     removeAnnotation,
+    updateConversationName,
     deleteConversation,
     setActiveConversationId,
     getConversationsForProject,
   }), [
     conversations, activeConversationId, activeConversation, loading,
     createConversation, addMessage, updateMessageStatus, setBotStatus,
-    addAnnotation, removeAnnotation, deleteConversation,
+    addAnnotation, removeAnnotation, updateConversationName, deleteConversation,
     setActiveConversationId, getConversationsForProject,
   ]);
 

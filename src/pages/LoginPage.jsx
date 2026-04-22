@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
+  const { t, toggleLang } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +20,7 @@ export default function LoginPage() {
     try {
       await signIn(email.trim(), password.trim());
     } catch (err) {
-      setError(err.message || 'Failed to sign in');
+      setError(err.message || t('login.error'));
     } finally {
       setLoading(false);
     }
@@ -35,18 +37,18 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="font-mono text-xl font-bold text-surface-50 tracking-wider">BOTLAB</h1>
-          <p className="text-xs text-surface-300 mt-1">WhatsApp Bot Testing Platform</p>
+          <p className="text-xs text-surface-300 mt-1">{t('login.subtitle')}</p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-surface-800 border border-surface-400/50 rounded-xl p-6">
           <div className="mb-4">
-            <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">Email</label>
+            <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('login.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t('login.emailPlaceholder')}
               className="w-full bg-surface-700 border border-surface-400 rounded-lg px-3 py-2.5 text-sm text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
               autoFocus
               required
@@ -54,12 +56,12 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-6">
-            <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">Password</label>
+            <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('login.password')}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder={t('login.passwordPlaceholder')}
               className="w-full bg-surface-700 border border-surface-400 rounded-lg px-3 py-2.5 text-sm text-surface-50 placeholder:text-surface-300 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
               required
             />
@@ -76,13 +78,21 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-accent text-surface-900 font-mono text-xs uppercase tracking-wider font-semibold hover:bg-accent-hover transition-all disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('login.loading') : t('login.submit')}
           </button>
         </form>
 
-        <p className="text-center text-[10px] text-surface-400 font-mono mt-4">
-          Contact your admin for access credentials
-        </p>
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-[10px] text-surface-400 font-mono">
+            {t('login.footer')}
+          </p>
+          <button
+            onClick={toggleLang}
+            className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-surface-800 text-surface-300 hover:text-surface-50 border border-surface-400/50 transition-all"
+          >
+            {t('lang.toggle')}
+          </button>
+        </div>
       </div>
     </div>
   );

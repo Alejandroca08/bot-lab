@@ -1,6 +1,8 @@
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function VoiceRecorder({ onRecorded }) {
+  const { t } = useTranslation();
   const { isRecording, duration, startRecording, stopRecording } = useVoiceRecorder();
 
   const handleMouseDown = async () => {
@@ -45,7 +47,7 @@ export default function VoiceRecorder({ onRecorded }) {
       type="button"
       onMouseDown={handleMouseDown}
       className="p-2.5 rounded-lg text-surface-300 hover:text-surface-50 hover:bg-surface-700 transition-all shrink-0"
-      title="Hold to record voice memo"
+      title={t('voice.holdToRecord')}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />

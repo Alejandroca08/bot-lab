@@ -1,6 +1,8 @@
 import { formatConversationJSON, formatConversationMarkdown, formatAnnotationsSummary } from '../../utils/exportFormatters';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function ExportOptions({ conversation, onClose }) {
+  const { t } = useTranslation();
   const handleExportJSON = () => {
     const json = formatConversationJSON(conversation);
     const blob = new Blob([json], { type: 'application/json' });
@@ -15,18 +17,18 @@ export default function ExportOptions({ conversation, onClose }) {
   const handleCopyMarkdown = async () => {
     const md = formatConversationMarkdown(conversation);
     await navigator.clipboard.writeText(md);
-    alert('Copied to clipboard!');
+    alert(t('export.copied'));
   };
 
   const handleCopySummary = async () => {
     const summary = formatAnnotationsSummary(conversation);
     await navigator.clipboard.writeText(summary);
-    alert('Summary copied to clipboard!');
+    alert(t('export.summaryCopied'));
   };
 
   return (
     <div className="bg-surface-800 border-b border-surface-400/50 px-6 py-3 flex items-center gap-3 animate-fade-in">
-      <span className="text-[10px] font-mono uppercase tracking-wider text-surface-300 mr-2">Export:</span>
+      <span className="text-[10px] font-mono uppercase tracking-wider text-surface-300 mr-2">{t('export.label')}</span>
 
       <button
         onClick={handleExportJSON}
@@ -37,7 +39,7 @@ export default function ExportOptions({ conversation, onClose }) {
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        JSON File
+        {t('export.json')}
       </button>
 
       <button
@@ -48,7 +50,7 @@ export default function ExportOptions({ conversation, onClose }) {
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
-        Copy Markdown
+        {t('export.markdown')}
       </button>
 
       <button
@@ -59,7 +61,7 @@ export default function ExportOptions({ conversation, onClose }) {
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
-        Summary Only
+        {t('export.summary')}
       </button>
 
       <button onClick={onClose} className="ml-auto p-1 rounded text-surface-400 hover:text-surface-50 transition-colors">
