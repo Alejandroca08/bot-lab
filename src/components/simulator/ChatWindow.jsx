@@ -26,6 +26,7 @@ export default function ChatWindow() {
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
   const [showConversations, setShowConversations] = useState(false);
   const [newConvModalOpen, setNewConvModalOpen] = useState(false);
+  const [handoffAlert, setHandoffAlert] = useState(null);
   const messagesEndRef = useRef(null);
 
   const projectConversations = activeProject ? getConversationsForProject(activeProject.id) : [];
@@ -119,7 +120,42 @@ export default function ChatWindow() {
           status: 'delivered',
         });
       }
+
+      // Handle handoff: auto-deactivate bot and notify agent panel
+      if (result.data.handoff) {
+        await setBotStatus(activeConversation.id, 'deactivated');
+        setHandoffAlert(result.data.handoff_message || '');
+        setAgentPanelOpen(true);
+      }
     }
+  };
+
+  const handleHandoffComplete = async () => {
+    if (!activeConversation || !activeProject) return;
+
+    const payload = buildInboundTextPayload({
+      from: activeConversation.simulatedPhoneNumber,
+      to: activeProject.agentPhoneNumber,
+      body: '[HANDOFF_COMPLETE]',
+      customerName: activeConversation.customerName,
+    });
+    payload._handoffComplete = true;
+
+    const result = await sendPayload(activeProject.webhookUrl, payload);
+
+    if (result.ok && result.data) {
+      const botText = result.data.output || result.data.message || result.data.text ||
+        (typeof result.data === 'string' ? result.data : null);
+      if (botText) {
+        await addMessage(activeConversation.id, {
+          sender: 'bot',
+          type: 'text',
+          content: botText,
+          status: 'delivered',
+        });
+      }
+    }
+    setHandoffAlert(null);
   };
 
   const handlePasteResponse = async (responseText) => {
@@ -235,6 +271,9 @@ export default function ChatWindow() {
           conversation={activeConversation}
           project={activeProject}
           onClose={() => setAgentPanelOpen(false)}
+          handoffAlert={handoffAlert}
+          onDismissHandoff={() => setHandoffAlert(null)}
+          onHandoffComplete={handleHandoffComplete}
         />
       )}
 

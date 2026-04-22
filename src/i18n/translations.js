@@ -104,6 +104,8 @@ const translations = {
   'agentPanel.botActive': { en: 'Bot activated', es: 'Bot activado' },
   'agentPanel.botDeactivated': { en: 'Bot deactivated — {name} is responding', es: 'Bot desactivado — {name} está respondiendo' },
   'agentPanel.replyAs': { en: 'Reply as {name}...', es: 'Responder como {name}...' },
+  'agentPanel.handoffAlert': { en: 'Handoff requested', es: 'Handoff solicitado' },
+  'agentPanel.handoffDismiss': { en: 'Dismiss', es: 'Cerrar' },
 
   // ─── Paste Response Modal ───
   'paste.title': { en: 'Paste Bot Response', es: 'Pegar respuesta del bot' },

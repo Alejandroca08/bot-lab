@@ -4,7 +4,7 @@ import { useTranslation } from '../../contexts/LanguageContext';
 import { REACTIVATION_KEYWORD } from '../../utils/constants';
 import MessageBubble from './MessageBubble';
 
-export default function AgentPanel({ conversation, project, onClose }) {
+export default function AgentPanel({ conversation, project, onClose, handoffAlert, onDismissHandoff, onHandoffComplete }) {
   const { t } = useTranslation();
   const { addMessage, updateMessageStatus, setBotStatus } = useContext(ConversationContext);
   const [text, setText] = useState('');
@@ -13,6 +13,24 @@ export default function AgentPanel({ conversation, project, onClose }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation?.messages?.length]);
+
+  // Play notification sound when handoff alert arrives
+  useEffect(() => {
+    if (!handoffAlert && handoffAlert !== '') return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.value = 0.15;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.stop(ctx.currentTime + 0.5);
+    } catch {}
+  }, [handoffAlert]);
 
   const sendAgentMessage = async (body) => {
     const isReactivation = body === REACTIVATION_KEYWORD;
@@ -36,6 +54,11 @@ export default function AgentPanel({ conversation, project, onClose }) {
 
     // Agent messages are local-only (n8n doesn't process outbound messages)
     await updateMessageStatus(conversation.id, created.id, 'delivered');
+
+    // When reactivating, notify the workflow so the bot can follow up
+    if (isReactivation && onHandoffComplete) {
+      onHandoffComplete();
+    }
 
     setText('');
   };
@@ -87,13 +110,42 @@ export default function AgentPanel({ conversation, project, onClose }) {
         {conversation.botStatus === 'active' ? t('agentPanel.botActive') : t('agentPanel.botDeactivated', { name: project.clientName })}
       </div>
 
+      {/* Handoff notification banner */}
+      {handoffAlert != null && (
+        <div className="px-3 py-3 bg-amber-500/15 border-b border-amber-500/30 animate-fade-in">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2 min-w-0">
+              <span className="text-amber-400 text-base mt-0.5 shrink-0">&#128276;</span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-semibold mb-1">
+                  {t('agentPanel.handoffAlert')}
+                </p>
+                {handoffAlert && (
+                  <p className="text-xs text-amber-200/80 break-words">{handoffAlert}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={onDismissHandoff}
+              className="text-[9px] font-mono uppercase text-amber-400/60 hover:text-amber-300 shrink-0 mt-0.5"
+            >
+              {t('agentPanel.handoffDismiss')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages (mirrored) */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1" style={{ background: 'rgba(45, 27, 78, 0.1)' }}>
         {conversation.messages.map((msg) => {
           // In agent panel, flip perspective: customer msgs are "incoming", agent msgs are "outgoing"
+          // In agent panel: customer→incoming(bot), agent→outgoing(customer), bot→purple(agent)
           const flippedMsg = {
             ...msg,
-            sender: msg.sender === 'customer' ? 'bot' : msg.sender === 'agent' ? 'customer' : msg.sender,
+            sender: msg.sender === 'customer' ? 'bot'
+              : msg.sender === 'agent' ? 'customer'
+              : msg.sender === 'bot' ? 'agent'
+              : msg.sender,
           };
           return <MessageBubble key={msg.id} message={flippedMsg} />;
         })}
