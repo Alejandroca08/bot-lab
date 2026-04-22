@@ -1,13 +1,10 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { ConversationContext } from '../../contexts/ConversationContext';
-import { useWebhook } from '../../hooks/useWebhook';
-import { buildOutboundTextPayload } from '../../utils/payloadBuilders';
 import { REACTIVATION_KEYWORD } from '../../utils/constants';
 import MessageBubble from './MessageBubble';
 
 export default function AgentPanel({ conversation, project, onClose }) {
   const { addMessage, updateMessageStatus, setBotStatus } = useContext(ConversationContext);
-  const { sendPayload } = useWebhook();
   const [text, setText] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -35,16 +32,8 @@ export default function AgentPanel({ conversation, project, onClose }) {
       await setBotStatus(conversation.id, 'deactivated');
     }
 
-    // Build and send outbound payload
-    const payload = buildOutboundTextPayload({
-      from: project.agentPhoneNumber,
-      to: conversation.simulatedPhoneNumber,
-      body,
-      wabaId: 'waba_simulated',
-    });
-
-    const result = await sendPayload(project.webhookUrl, payload);
-    await updateMessageStatus(conversation.id, created.id, result.ok ? 'delivered' : 'failed');
+    // Agent messages are local-only (n8n doesn't process outbound messages)
+    await updateMessageStatus(conversation.id, created.id, 'delivered');
 
     setText('');
   };

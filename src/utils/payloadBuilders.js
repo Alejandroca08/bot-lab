@@ -33,11 +33,12 @@ export function buildInboundTextPayload({ from, to, body, customerName }) {
   };
 }
 
-export function buildInboundImagePayload({ from, to, caption, imageId }) {
+export function buildInboundImagePayload({ from, to, caption, imageId, imageBase64 }) {
   const timestamp = isoNow();
   const wamId = generateWamId();
 
   return {
+    _imageBase64: imageBase64 || null,
     id: generateEventId(),
     type: "whatsapp.inbound_message.received",
     apiVersion: "v2",
@@ -61,11 +62,12 @@ export function buildInboundImagePayload({ from, to, caption, imageId }) {
   };
 }
 
-export function buildInboundAudioPayload({ from, to, audioId }) {
+export function buildInboundAudioPayload({ from, to, audioId, audioBase64 }) {
   const timestamp = isoNow();
   const wamId = generateWamId();
 
   return {
+    _audioBase64: audioBase64 || null,
     id: generateEventId(),
     type: "whatsapp.inbound_message.received",
     apiVersion: "v2",

@@ -83,13 +83,21 @@ export default function ChatWindow() {
         to: activeProject.agentPhoneNumber,
         caption: metadata.caption || '',
         imageId: generateMessageId(),
+        imageBase64: content,
       });
     } else if (type === 'audio') {
       payload = buildInboundAudioPayload({
         from: activeConversation.simulatedPhoneNumber,
         to: activeProject.agentPhoneNumber,
         audioId: generateMessageId(),
+        audioBase64: content,
       });
+    }
+
+    // Skip webhook when bot is deactivated (agent handling)
+    if (activeConversation.botStatus === 'deactivated') {
+      await updateMessageStatus(activeConversation.id, created.id, 'delivered');
+      return;
     }
 
     const result = await sendPayload(activeProject.webhookUrl, payload);

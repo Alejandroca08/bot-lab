@@ -10,7 +10,8 @@
       "Bash(kill:*)",
       "Bash(npx vite:*)",
       "Bash(curl:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(python3:*)"
     ]
   }
 }
