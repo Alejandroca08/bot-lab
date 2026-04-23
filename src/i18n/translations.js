@@ -67,6 +67,7 @@ const translations = {
   'chat.pasteResponse': { en: 'Paste Response', es: 'Pegar respuesta' },
   'chat.agent': { en: 'Agent', es: 'Agente' },
   'chat.newConversation': { en: 'New Conversation', es: 'Nueva conversación' },
+  'chat.collectingMessages': { en: 'Collecting messages...', es: 'Recopilando mensajes...' },
 
   // ─── New Conversation Modal ───
   'newConv.title': { en: 'New conversation', es: 'Nueva conversación' },

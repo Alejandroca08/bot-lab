@@ -32,13 +32,26 @@ export default function ChatWindow() {
   const [newConvModalOpen, setNewConvModalOpen] = useState(false);
   const [handoffAlert, setHandoffAlert] = useState(null);
   const [botTyping, setBotTyping] = useState(false);
+  const [isBatching, setIsBatching] = useState(false);
   const messagesEndRef = useRef(null);
+  const pendingBatchRef = useRef([]);
+  const batchTimerRef = useRef(null);
 
   const projectConversations = activeProject ? getConversationsForProject(activeProject.id) : [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeConversation?.messages?.length, botTyping]);
+
+  // Clear pending batch on conversation change
+  useEffect(() => {
+    if (batchTimerRef.current) {
+      clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
+    pendingBatchRef.current = [];
+    setIsBatching(false);
+  }, [activeConversation?.id]);
 
   if (!activeProject) {
     return (
@@ -66,29 +79,118 @@ export default function ChatWindow() {
     setNewConvModalOpen(false);
   };
 
+  // Split bot response into multiple bubbles by paragraph breaks
+  const addBotMessages = async (text, convId) => {
+    const parts = text.split(/\n\n+/).filter(p => p.trim());
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0) {
+        setBotTyping(true);
+        const delay = Math.min(Math.max(parts[i].length * 20, 600), 1800);
+        await new Promise(r => setTimeout(r, delay));
+      }
+      setBotTyping(false);
+      await addMessage(convId, {
+        sender: 'bot',
+        type: 'text',
+        content: parts[i].trim(),
+        status: 'delivered',
+      });
+    }
+  };
+
+  // Send a batch of queued text messages as one combined message
+  const fireBatch = async (batch) => {
+    if (batch.length === 0) return;
+    const { conversationId, webhookUrl, phone, agentPhone, customerName } = batch[0];
+    const combinedContent = batch.map(m => m.content).join('\n');
+
+    const payload = buildInboundTextPayload({
+      from: phone,
+      to: agentPhone,
+      body: combinedContent,
+      customerName,
+    });
+
+    setBotTyping(true);
+    const result = await sendPayload(webhookUrl, payload);
+
+    for (const msg of batch) {
+      await updateMessageStatus(msg.conversationId, msg.messageId, result.ok ? 'delivered' : 'failed');
+    }
+
+    if (!result.ok) {
+      setBotTyping(false);
+      addToast(t('toast.messageFailed'), 'error');
+      return;
+    }
+
+    if (result.data) {
+      const botText = result.data.output || result.data.message || result.data.text ||
+        (typeof result.data === 'string' ? result.data : null);
+      if (botText) {
+        await addBotMessages(botText, conversationId);
+      } else {
+        setBotTyping(false);
+      }
+      if (result.data.handoff) {
+        await setBotStatus(conversationId, 'deactivated');
+        setHandoffAlert(result.data.handoff_message || '');
+        setAgentPanelOpen(true);
+      }
+    } else {
+      setBotTyping(false);
+    }
+  };
+
   const handleSendMessage = async (content, type = 'text', metadata = {}) => {
     if (!activeConversation) return;
 
-    const message = {
-      sender: 'customer',
-      type,
-      content,
-      status: 'sending',
-      metadata,
-    };
-
+    const message = { sender: 'customer', type, content, status: 'sending', metadata };
     const created = await addMessage(activeConversation.id, message);
     if (!created) return;
 
-    let payload;
+    // Skip webhook when bot is deactivated (agent handling)
+    if (activeConversation.botStatus === 'deactivated') {
+      await updateMessageStatus(activeConversation.id, created.id, 'delivered');
+      return;
+    }
+
+    // Text messages: batch for 3 seconds to collect rapid-fire messages
     if (type === 'text') {
-      payload = buildInboundTextPayload({
-        from: activeConversation.simulatedPhoneNumber,
-        to: activeProject.agentPhoneNumber,
-        body: content,
+      pendingBatchRef.current.push({
+        content,
+        messageId: created.id,
+        conversationId: activeConversation.id,
+        phone: activeConversation.simulatedPhoneNumber,
+        agentPhone: activeProject.agentPhoneNumber,
         customerName: activeConversation.customerName,
+        webhookUrl: activeProject.webhookUrl,
       });
-    } else if (type === 'image') {
+
+      if (batchTimerRef.current) clearTimeout(batchTimerRef.current);
+      setIsBatching(true);
+      batchTimerRef.current = setTimeout(() => {
+        const batch = [...pendingBatchRef.current];
+        pendingBatchRef.current = [];
+        batchTimerRef.current = null;
+        setIsBatching(false);
+        fireBatch(batch);
+      }, 13000);
+      return;
+    }
+
+    // Non-text messages: flush any pending text batch first, then send immediately
+    if (pendingBatchRef.current.length > 0) {
+      if (batchTimerRef.current) clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+      setIsBatching(false);
+      const batch = [...pendingBatchRef.current];
+      pendingBatchRef.current = [];
+      await fireBatch(batch);
+    }
+
+    let payload;
+    if (type === 'image') {
       payload = buildInboundImagePayload({
         from: activeConversation.simulatedPhoneNumber,
         to: activeProject.agentPhoneNumber,
@@ -105,37 +207,31 @@ export default function ChatWindow() {
       });
     }
 
-    // Skip webhook when bot is deactivated (agent handling)
-    if (activeConversation.botStatus === 'deactivated') {
-      await updateMessageStatus(activeConversation.id, created.id, 'delivered');
+    setBotTyping(true);
+    const result = await sendPayload(activeProject.webhookUrl, payload);
+    await updateMessageStatus(activeConversation.id, created.id, result.ok ? 'delivered' : 'failed');
+
+    if (!result.ok) {
+      setBotTyping(false);
+      addToast(t('toast.messageFailed'), 'error');
       return;
     }
 
-    setBotTyping(true);
-    const result = await sendPayload(activeProject.webhookUrl, payload);
-    setBotTyping(false);
-    await updateMessageStatus(activeConversation.id, created.id, result.ok ? 'delivered' : 'failed');
-    if (!result.ok) addToast(t('toast.messageFailed'), 'error');
-
-    // Auto-display bot response from webhook reply
-    if (result.ok && result.data) {
+    if (result.data) {
       const botText = result.data.output || result.data.message || result.data.text ||
         (typeof result.data === 'string' ? result.data : null);
       if (botText) {
-        await addMessage(activeConversation.id, {
-          sender: 'bot',
-          type: 'text',
-          content: botText,
-          status: 'delivered',
-        });
+        await addBotMessages(botText, activeConversation.id);
+      } else {
+        setBotTyping(false);
       }
-
-      // Handle handoff: auto-deactivate bot and notify agent panel
       if (result.data.handoff) {
         await setBotStatus(activeConversation.id, 'deactivated');
         setHandoffAlert(result.data.handoff_message || '');
         setAgentPanelOpen(true);
       }
+    } else {
+      setBotTyping(false);
     }
   };
 
@@ -156,12 +252,7 @@ export default function ChatWindow() {
       const botText = result.data.output || result.data.message || result.data.text ||
         (typeof result.data === 'string' ? result.data : null);
       if (botText) {
-        await addMessage(activeConversation.id, {
-          sender: 'bot',
-          type: 'text',
-          content: botText,
-          status: 'delivered',
-        });
+        await addBotMessages(botText, activeConversation.id);
       }
     }
     setHandoffAlert(null);
@@ -270,6 +361,15 @@ export default function ChatWindow() {
             </>
           )}
         </div>
+
+        {/* Batching indicator */}
+        {activeConversation && isBatching && (
+          <div className="px-4 py-1.5 bg-surface-800/80 border-t border-surface-400/20">
+            <span className="text-[10px] font-mono text-surface-400 animate-pulse">
+              {t('chat.collectingMessages')}
+            </span>
+          </div>
+        )}
 
         {/* Message input */}
         {activeConversation && (
