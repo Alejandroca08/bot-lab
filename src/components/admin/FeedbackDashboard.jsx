@@ -38,7 +38,7 @@ export default function FeedbackDashboard() {
     setLoading(true);
 
     const select = encodeURIComponent(
-      '*,conversations(customer_name,project_id),messages(content,type,sender),profiles:user_id(name)'
+      '*,conversations(customer_name,project_id),messages(content,type,sender)'
     );
     const { data, error } = await restQuery(
       `/rest/v1/annotations?select=${select}&order=created_at.desc&limit=200`,
@@ -54,6 +54,22 @@ export default function FeedbackDashboard() {
       const filtered = activeProject
         ? data.filter(a => a.conversations?.project_id === activeProject.id)
         : data;
+
+      // Fetch profile names for annotation authors
+      const userIds = [...new Set(filtered.map(a => a.user_id).filter(Boolean))];
+      if (userIds.length > 0) {
+        const idFilter = userIds.map(id => `id.eq.${id}`).join(',');
+        const { data: profiles } = await restQuery(
+          `/rest/v1/profiles?select=id,name&or=(${encodeURIComponent(idFilter)})`,
+          {},
+          token
+        );
+        if (profiles) {
+          const nameMap = Object.fromEntries(profiles.map(p => [p.id, p.name]));
+          filtered.forEach(a => { a._authorName = nameMap[a.user_id] || null; });
+        }
+      }
+
       setAnnotations(filtered);
       updateStats(filtered);
     }
@@ -63,7 +79,7 @@ export default function FeedbackDashboard() {
 
   const loadAnnotationDetails = async (id) => {
     const select = encodeURIComponent(
-      '*,conversations(customer_name,project_id),messages(content,type,sender),profiles:user_id(name)'
+      '*,conversations(customer_name,project_id),messages(content,type,sender)'
     );
     const { data, error } = await restQuery(
       `/rest/v1/annotations?select=${select}&id=eq.${id}`,
@@ -77,6 +93,15 @@ export default function FeedbackDashboard() {
     if (!error && data) {
       // Only add if it belongs to the active project (or no project filter)
       if (!activeProject || data.conversations?.project_id === activeProject.id) {
+        // Fetch author name
+        if (data.user_id) {
+          const { data: profile } = await restQuery(
+            `/rest/v1/profiles?select=name&id=eq.${data.user_id}`,
+            { single: true },
+            token
+          );
+          data._authorName = profile?.name || null;
+        }
         setAnnotations((prev) => [data, ...prev]);
         updateStats(null);
       }
@@ -182,7 +207,7 @@ export default function FeedbackDashboard() {
                   <div className="flex items-center gap-3 text-[10px] font-mono text-surface-300 mb-1.5">
                     <span className="text-accent">{activeProject?.name || 'Unknown project'}</span>
                     <span>·</span>
-                    <span>by {ann.profiles?.name || 'Unknown'}</span>
+                    <span>by {ann._authorName || 'Unknown'}</span>
                     <span>·</span>
                     <span>{ann.conversations?.customer_name || 'Unknown'}</span>
                   </div>

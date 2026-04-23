@@ -2,10 +2,11 @@
 -- Run this against your existing database to patch the two critical vulnerabilities.
 
 -- 1. Fix handle_new_user trigger: never read role from user metadata
-CREATE OR REPLACE FUNCTION handle_new_user()
+-- Uses explicit public schema + SET search_path for self-hosted GoTrue (supabase_auth_admin)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, name, role)
+  INSERT INTO public.profiles (id, name, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
@@ -13,7 +14,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 2. Fix profile UPDATE policy: clients can only update their name
 DROP POLICY IF EXISTS "Users update own profile" ON profiles;

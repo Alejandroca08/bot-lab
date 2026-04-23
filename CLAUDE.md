@@ -85,3 +85,7 @@ supabase/migrations/ — SQL schema + RLS policies
 
 - **Supabase Realtime** (WebSocket) does not work on the self-hosted instance — the Realtime service is not exposed on the expected port. The FeedbackDashboard subscribes but won't receive live updates until this is fixed server-side. The app functions without it.
 - **`StrictMode` is removed** from `main.jsx` — it caused double-mount that orphaned browser locks with the Supabase auth client. Do not re-add it.
+
+## Supabase Self-Hosted Notes
+
+The Supabase instance is self-hosted on a VPS using Docker Swarm managed through Portainer. The auth service (GoTrue) runs as the `supabase_auth_admin` database role, which does NOT have `public` in its default `search_path`. Any trigger or function that runs in the auth context MUST use explicit `public.table_name` references and include `SET search_path = public` in the function definition. The `handle_new_user()` trigger must always hardcode `role = 'client'` — never read role from `raw_user_meta_data`. The `GOTRUE_EXTERNAL_EMAIL_ENABLED` environment variable must be set to `true` in the Docker Swarm service for email login to work. To update Swarm service env vars use: `docker service update --env-add VAR=value supabase_supabase_auth`

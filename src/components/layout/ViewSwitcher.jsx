@@ -5,7 +5,7 @@ import TestLabView from '../testlab/TestLabView';
 import ClientManager from '../admin/ClientManager';
 import FeedbackDashboard from '../admin/FeedbackDashboard';
 
-export default function ViewSwitcher({ activeView }) {
+export default function ViewSwitcher({ activeView, onViewChange }) {
   switch (activeView) {
     case VIEWS.SETTINGS:
       return <ProjectSettings />;
@@ -14,7 +14,7 @@ export default function ViewSwitcher({ activeView }) {
     case VIEWS.TESTLAB:
       return <TestLabView />;
     case VIEWS.CLIENTS:
-      return <ClientManager />;
+      return <ClientManager onViewChange={onViewChange} />;
     case VIEWS.DASHBOARD:
       return <FeedbackDashboard />;
     default:

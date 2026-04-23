@@ -10,7 +10,7 @@ export default function MainLayout() {
     <div className="flex h-screen overflow-hidden bg-surface-900">
       <Sidebar activeView={activeView} onViewChange={setActiveView} />
       <main className="flex-1 overflow-hidden">
-        <ViewSwitcher activeView={activeView} />
+        <ViewSwitcher activeView={activeView} onViewChange={setActiveView} />
       </main>
     </div>
   );

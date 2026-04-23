@@ -3,14 +3,17 @@ import { restQuery, authSignUpDirect } from '../../lib/supabase';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { VIEWS } from '../../utils/constants';
 
-export default function ClientManager() {
-  const { projects } = useContext(ProjectContext);
+export default function ClientManager({ onViewChange }) {
+  const { projects, setActiveProjectId } = useContext(ProjectContext);
   const { session } = useAuth();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const token = session?.access_token;
   const [clients, setClients] = useState([]);
+  const [clientStats, setClientStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', projectId: '', password: '' });
   const [inviteError, setInviteError] = useState('');
@@ -30,8 +33,68 @@ export default function ClientManager() {
 
     if (!error && data) {
       setClients(data);
+      if (data.length > 0) {
+        loadClientStats(data.map(c => c.id));
+      }
     }
     setLoading(false);
+  };
+
+  const loadClientStats = async (clientIds) => {
+    const idList = clientIds.join(',');
+
+    // Fetch conversations and annotations in parallel
+    const [convResult, annResult] = await Promise.all([
+      restQuery(
+        `/rest/v1/conversations?select=id,user_id,created_at&user_id=in.(${idList})`,
+        {},
+        token
+      ),
+      restQuery(
+        `/rest/v1/annotations?select=id,user_id,severity,created_at&user_id=in.(${idList})`,
+        {},
+        token
+      ),
+    ]);
+
+    const stats = {};
+    clientIds.forEach(id => {
+      stats[id] = { conversations: 0, annotations: 0, critical: 0, medium: 0, minor: 0, lastActive: null };
+    });
+
+    if (convResult.data) {
+      for (const conv of convResult.data) {
+        if (!stats[conv.user_id]) continue;
+        stats[conv.user_id].conversations++;
+        const ts = new Date(conv.created_at).getTime();
+        if (!stats[conv.user_id].lastActive || ts > stats[conv.user_id].lastActive) {
+          stats[conv.user_id].lastActive = ts;
+        }
+      }
+    }
+
+    if (annResult.data) {
+      for (const ann of annResult.data) {
+        if (!stats[ann.user_id]) continue;
+        stats[ann.user_id].annotations++;
+        if (ann.severity === 'critical') stats[ann.user_id].critical++;
+        else if (ann.severity === 'medium') stats[ann.user_id].medium++;
+        else stats[ann.user_id].minor++;
+        const ts = new Date(ann.created_at).getTime();
+        if (!stats[ann.user_id].lastActive || ts > stats[ann.user_id].lastActive) {
+          stats[ann.user_id].lastActive = ts;
+        }
+      }
+    }
+
+    setClientStats(stats);
+  };
+
+  const handleTestBot = (client) => {
+    if (client.project_id) {
+      setActiveProjectId(client.project_id);
+    }
+    onViewChange?.(VIEWS.SIMULATOR);
   };
 
   const handleInvite = async (e) => {
@@ -42,7 +105,6 @@ export default function ClientManager() {
     setInviteError('');
 
     try {
-      // Create user via direct GoTrue API (doesn't change admin session)
       const { data: authData, error: authError } = await authSignUpDirect(
         inviteForm.email,
         inviteForm.password,
@@ -54,16 +116,11 @@ export default function ClientManager() {
       const userId = authData?.id || authData?.user?.id;
       if (!userId) throw new Error('User was created but no ID returned');
 
-      // Update profile with project assignment
-      const { error: updateError } = await restQuery(
+      await restQuery(
         `/rest/v1/profiles?id=eq.${userId}`,
         { method: 'PATCH', body: { project_id: inviteForm.projectId }, prefer: 'return=minimal' },
         token
       );
-
-      if (updateError) {
-        // Failed to assign project
-      }
 
       setShowInvite(false);
       setInviteForm({ name: '', email: '', projectId: '', password: '' });
@@ -82,6 +139,18 @@ export default function ClientManager() {
       token
     );
     await loadClients();
+  };
+
+  const timeAgo = (timestamp) => {
+    if (!timestamp) return t('clients.never');
+    const diff = Date.now() - timestamp;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t('clients.justNow');
+    if (mins < 60) return lang === 'es' ? `hace ${mins}m` : `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return lang === 'es' ? `hace ${hours}h` : `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return lang === 'es' ? `hace ${days}d` : `${days}d ago`;
   };
 
   return (
@@ -188,37 +257,153 @@ export default function ClientManager() {
           </div>
         ) : (
           <div className="space-y-3">
-            {clients.map((client) => (
-              <div key={client.id} className="bg-surface-800 border border-surface-400/50 rounded-xl p-5 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-surface-50">{client.name}</h3>
-                    <p className="text-xs text-surface-300 font-mono mt-0.5">{client.id}</p>
+            {clients.map((client) => {
+              const stats = clientStats[client.id] || {};
+              const isExpanded = expandedId === client.id;
+
+              return (
+                <div
+                  key={client.id}
+                  className={`bg-surface-800 border rounded-xl transition-all duration-150
+                    ${isExpanded ? 'border-accent/30 bg-accent/5' : 'border-surface-400/50 hover:border-surface-300'}`}
+                >
+                  {/* Main row — always visible */}
+                  <div
+                    className="p-5 cursor-pointer"
+                    onClick={() => setExpandedId(isExpanded ? null : client.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-mono font-bold text-accent">
+                            {(client.name || '?').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-surface-50 truncate">{client.name}</h3>
+                          <p className="text-[11px] text-surface-300 font-mono mt-0.5 truncate">{client.email || client.id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {/* Quick stats badges */}
+                        <div className="hidden sm:flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-surface-300 bg-surface-700 px-2 py-0.5 rounded">
+                            {stats.conversations || 0} {t('clients.convos')}
+                          </span>
+                          <span className="text-[10px] font-mono text-surface-300 bg-surface-700 px-2 py-0.5 rounded">
+                            {stats.annotations || 0} {t('clients.flags')}
+                          </span>
+                        </div>
+                        {client.projects ? (
+                          <span className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
+                            {client.projects.name}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-mono text-surface-300 bg-surface-700 px-2 py-0.5 rounded-full border border-surface-400/50">
+                            {t('clients.unassigned')}
+                          </span>
+                        )}
+                        {/* Expand indicator */}
+                        <svg
+                          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                          className={`text-surface-300 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {client.projects ? (
-                      <span className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
-                        {client.projects.name}
-                      </span>
-                    ) : (
-                      <select
-                        value=""
-                        onChange={(e) => handleAssignProject(client.id, e.target.value)}
-                        className="bg-surface-700 border border-surface-400 rounded-lg px-2 py-1 text-xs text-surface-50 focus:outline-none focus:border-accent"
-                      >
-                        <option value="">{t('clients.assignPlaceholder')}</option>
-                        {projects.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+
+                  {/* Expanded detail panel */}
+                  {isExpanded && (
+                    <div className="px-5 pb-5 border-t border-surface-400/30 pt-4 animate-fade-in">
+                      {/* Stats grid */}
+                      <div className="grid grid-cols-4 gap-3 mb-4">
+                        <MiniStat label={t('clients.conversations')} value={stats.conversations || 0} color="text-surface-50" />
+                        <MiniStat label={t('clients.critical')} value={stats.critical || 0} color="text-severity-critical" />
+                        <MiniStat label={t('clients.medium')} value={stats.medium || 0} color="text-severity-medium" />
+                        <MiniStat label={t('clients.minor')} value={stats.minor || 0} color="text-severity-minor" />
+                      </div>
+
+                      {/* Info row */}
+                      <div className="flex items-center gap-4 text-[11px] font-mono text-surface-300 mb-4">
+                        <span className="flex items-center gap-1.5">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          {t('clients.lastActive')}: {timeAgo(stats.lastActive)}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                          </svg>
+                          {t('clients.totalFlags')}: {stats.annotations || 0}
+                        </span>
+                      </div>
+
+                      {/* Project assignment */}
+                      {!client.projects && (
+                        <div className="mb-4">
+                          <label className="block font-mono text-[10px] uppercase tracking-widest text-surface-200 mb-1.5">{t('clients.assignProject')}</label>
+                          <select
+                            value=""
+                            onChange={(e) => handleAssignProject(client.id, e.target.value)}
+                            className="bg-surface-700 border border-surface-400 rounded-lg px-3 py-2 text-xs text-surface-50 focus:outline-none focus:border-accent w-full max-w-xs"
+                          >
+                            <option value="">{t('clients.assignPlaceholder')}</option>
+                            {projects.map((p) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2">
+                        {client.projects && (
+                          <button
+                            onClick={() => handleTestBot(client)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/15 text-accent border border-accent/30 text-xs font-mono uppercase tracking-wider hover:bg-accent/25 transition-all"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                            {t('clients.testBot')}
+                          </button>
+                        )}
+                        {client.projects && (
+                          <button
+                            onClick={() => {
+                              setActiveProjectId(client.project_id);
+                              onViewChange?.(VIEWS.TESTLAB);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-700 text-surface-200 border border-surface-400/50 text-xs font-mono uppercase tracking-wider hover:text-surface-50 hover:bg-surface-600 transition-all"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                              <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                            {t('clients.viewTestLab')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, color }) {
+  return (
+    <div className="bg-surface-700/50 rounded-lg p-3 text-center">
+      <p className={`text-lg font-bold font-mono ${color}`}>{value}</p>
+      <p className="text-[9px] font-mono uppercase tracking-wider text-surface-300 mt-0.5">{label}</p>
     </div>
   );
 }
