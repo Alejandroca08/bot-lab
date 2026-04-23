@@ -1,12 +1,14 @@
 import { useState, useEffect, useContext } from 'react';
 import { restQuery, authSignUpDirect } from '../../lib/supabase';
 import { ProjectContext } from '../../contexts/ProjectContext';
+import { ConversationContext } from '../../contexts/ConversationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { VIEWS } from '../../utils/constants';
 
 export default function ClientManager({ onViewChange }) {
   const { projects, setActiveProjectId } = useContext(ProjectContext);
+  const { setActiveConversationId } = useContext(ConversationContext);
   const { session } = useAuth();
   const { t, lang } = useTranslation();
   const token = session?.access_token;
@@ -43,10 +45,11 @@ export default function ClientManager({ onViewChange }) {
   const loadClientStats = async (clientIds) => {
     const idList = clientIds.join(',');
 
+    const convSelect = encodeURIComponent('id,user_id,created_at,customer_name,simulated_phone_number,bot_status,messages(count),annotations(count)');
     // Fetch conversations and annotations in parallel
     const [convResult, annResult] = await Promise.all([
       restQuery(
-        `/rest/v1/conversations?select=id,user_id,created_at&user_id=in.(${idList})`,
+        `/rest/v1/conversations?select=${convSelect}&user_id=in.(${idList})&order=created_at.desc`,
         {},
         token
       ),
@@ -59,13 +62,14 @@ export default function ClientManager({ onViewChange }) {
 
     const stats = {};
     clientIds.forEach(id => {
-      stats[id] = { conversations: 0, annotations: 0, critical: 0, medium: 0, minor: 0, lastActive: null };
+      stats[id] = { conversations: 0, annotations: 0, critical: 0, medium: 0, minor: 0, lastActive: null, conversationList: [] };
     });
 
     if (convResult.data) {
       for (const conv of convResult.data) {
         if (!stats[conv.user_id]) continue;
         stats[conv.user_id].conversations++;
+        stats[conv.user_id].conversationList.push(conv);
         const ts = new Date(conv.created_at).getTime();
         if (!stats[conv.user_id].lastActive || ts > stats[conv.user_id].lastActive) {
           stats[conv.user_id].lastActive = ts;
@@ -357,6 +361,51 @@ export default function ClientManager({ onViewChange }) {
                           {t('clients.totalFlags')}: {stats.annotations || 0}
                         </span>
                       </div>
+
+                      {/* Conversations list */}
+                      {stats.conversationList?.length > 0 ? (
+                        <div className="mb-4">
+                          <p className="text-[10px] font-mono uppercase tracking-widest text-surface-200 mb-2">{t('clients.conversationsList')}</p>
+                          <div className="bg-surface-700/50 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                            {stats.conversationList.map((conv) => {
+                              const msgCount = conv.messages?.[0]?.count || 0;
+                              const annCount = conv.annotations?.[0]?.count || 0;
+                              return (
+                                <button
+                                  key={conv.id}
+                                  onClick={() => {
+                                    setActiveProjectId(client.project_id);
+                                    setActiveConversationId(conv.id);
+                                    onViewChange?.(VIEWS.TESTLAB);
+                                  }}
+                                  className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-600/50 transition-colors border-b border-surface-400/20 last:border-b-0 group"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-surface-400 shrink-0">
+                                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                    </svg>
+                                    <span className="text-xs text-surface-100 truncate group-hover:text-surface-50">{conv.customer_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[10px] font-mono text-surface-400">{msgCount} {t('clients.msgs')}</span>
+                                    {annCount > 0 && (
+                                      <span className="text-[10px] font-mono text-warning bg-warning/10 px-1.5 py-0.5 rounded">{annCount}</span>
+                                    )}
+                                    <span className="text-[10px] font-mono text-surface-400">{timeAgo(new Date(conv.created_at).getTime())}</span>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-surface-400 group-hover:text-accent transition-colors">
+                                      <polyline points="9 18 15 12 9 6" />
+                                    </svg>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4 py-3 text-center">
+                          <p className="text-xs text-surface-400 font-mono">{t('clients.noConversations')}</p>
+                        </div>
+                      )}
 
                       {/* Project assignment */}
                       {!client.projects && (

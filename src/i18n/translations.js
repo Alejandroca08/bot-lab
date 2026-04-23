@@ -217,6 +217,9 @@ const translations = {
   'clients.justNow': { en: 'Just now', es: 'Ahora' },
   'clients.delete': { en: 'Delete', es: 'Eliminar' },
   'clients.confirmDelete': { en: 'Are you sure you want to delete this client? This cannot be undone.', es: 'Seguro que quieres eliminar este cliente? No se puede deshacer.' },
+  'clients.conversationsList': { en: 'Conversations', es: 'Conversaciones' },
+  'clients.noConversations': { en: 'No conversations yet', es: 'Aún no hay conversaciones' },
+  'clients.msgs': { en: 'msgs', es: 'msgs' },
 
   // ─── Feedback Dashboard (admin) ───
   'dashboard.title': { en: 'Feedback Dashboard', es: 'Panel de feedback' },
