@@ -174,40 +174,40 @@ export default function ChatWindow() {
       {/* Left: Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Chat header */}
-        <div className="bg-surface-800 border-b border-surface-400/50 px-4 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="bg-surface-800 border-b border-surface-400/50 px-3 md:px-4 py-2 md:py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
             <button
               onClick={() => setShowConversations(!showConversations)}
-              className="p-1.5 rounded-lg text-surface-300 hover:text-surface-50 hover:bg-surface-700 transition-all"
+              className="p-1.5 rounded-lg text-surface-300 hover:text-surface-50 hover:bg-surface-700 transition-all shrink-0"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
             {activeConversation ? (
-              <div>
-                <h3 className="text-sm font-semibold text-surface-50">{activeConversation.customerName}</h3>
-                <p className="text-[10px] font-mono text-surface-300">{activeConversation.simulatedPhoneNumber}</p>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-surface-50 truncate">{activeConversation.customerName}</h3>
+                <p className="text-[10px] font-mono text-surface-300 truncate">{activeConversation.simulatedPhoneNumber}</p>
               </div>
             ) : (
               <span className="text-sm text-surface-300">{t('chat.selectConversation')}</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
             {activeConversation && <BotStatusIndicator status={activeConversation.botStatus} />}
             <button
               onClick={() => setPasteModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider bg-surface-700 text-surface-200 hover:text-surface-50 hover:bg-surface-600 border border-surface-400/50 transition-all"
+              className="flex items-center gap-1.5 p-1.5 md:px-3 md:py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider bg-surface-700 text-surface-200 hover:text-surface-50 hover:bg-surface-600 border border-surface-400/50 transition-all"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
               </svg>
-              {t('chat.pasteResponse')}
+              <span className="hidden md:inline">{t('chat.pasteResponse')}</span>
             </button>
             <button
               onClick={() => setAgentPanelOpen(!agentPanelOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider border transition-all
+              className={`flex items-center gap-1.5 p-1.5 md:px-3 md:py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider border transition-all
                 ${agentPanelOpen
                   ? 'bg-bubble-agent/30 text-purple-300 border-purple-400/30'
                   : 'bg-surface-700 text-surface-200 border-surface-400/50 hover:text-surface-50'
@@ -217,7 +217,7 @@ export default function ChatWindow() {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              {t('chat.agent')}
+              <span className="hidden md:inline">{t('chat.agent')}</span>
             </button>
           </div>
         </div>

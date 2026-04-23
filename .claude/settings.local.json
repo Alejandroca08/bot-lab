@@ -16,7 +16,8 @@
       "Bash(grep -n \"''Bot activo\\\\|''Bot apagado\\\\|Haz clic para seleccionar\\\\|Agregar descripción\\\\|Mantén presionado\\\\|Escribe un mensaje\\\\|reactivó el bot\\\\|Pegar respuesta del bot\\\\|Pega la respuesta\\\\|Nueva conversación\\\\|Nombre de la prueba\\\\|Prueba reserva\\\\|Se generará un número\\\\|Aún no hay conversaciones\\\\|Eliminar esta conversación\\\\|Panel de agente\\\\|Bot activado\\\\|Bot desactivado\\\\|está respondiendo\\\\|Responder como\\\\|Sin proyecto seleccionado\\\\|Selecciona o crea\\\\|Pegar respuesta''\\\\|Agente''\" src/components/simulator/BotStatusIndicator.jsx src/components/simulator/ImageAttachment.jsx src/components/simulator/VoiceRecorder.jsx src/components/simulator/MessageInput.jsx src/components/simulator/MessageBubble.jsx src/components/simulator/PasteResponseModal.jsx src/components/simulator/NewConversationModal.jsx src/components/simulator/ConversationList.jsx src/components/simulator/AgentPanel.jsx src/components/simulator/ChatWindow.jsx)",
       "Bash(ls:*)",
       "Bash(find /Users/alejocatano02/Documents/WORK/bot-lab/supabase -name *.sql -type f)",
-      "WebFetch(domain:reactbits.dev)"
+      "WebFetch(domain:reactbits.dev)",
+      "Bash(find /Users/alejocatano02/Documents/WORK/bot-lab/src -name App.jsx -o -name index.css -o -name tailwind.config.*)"
     ]
   }
 }

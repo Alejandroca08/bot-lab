@@ -77,7 +77,7 @@ export default function AgentPanel({ conversation, project, onClose, handoffAler
   };
 
   return (
-    <div className="w-80 bg-surface-800/80 border-l border-purple-500/20 flex flex-col h-full shrink-0">
+    <div className="fixed inset-0 z-50 md:relative md:inset-auto md:z-auto md:w-80 bg-surface-800 md:bg-surface-800/80 border-l border-purple-500/20 flex flex-col h-full shrink-0">
       {/* Header */}
       <div className="px-4 py-3 border-b border-purple-500/20 flex items-center justify-between bg-bubble-agent/20">
         <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ const ADMIN_NAV_ITEMS = [
   { view: VIEWS.DASHBOARD, labelKey: 'nav.dashboard', icon: DashboardIcon },
 ];
 
-export default function Sidebar({ activeView, onViewChange }) {
+export default function Sidebar({ activeView, onViewChange, isOpen, onClose }) {
   const { projects, activeProject, setActiveProjectId } = useContext(ProjectContext);
   const { signOut, profile } = useAuth();
   const { t, toggleLang } = useTranslation();
@@ -50,7 +50,12 @@ export default function Sidebar({ activeView, onViewChange }) {
   }, [activeView]);
 
   return (
-    <aside className="w-64 bg-surface-800 border-r border-surface-400/50 flex flex-col h-screen shrink-0">
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={onClose} />
+      )}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface-800 border-r border-surface-400/50 flex flex-col h-screen shrink-0 transform transition-transform duration-200 ease-in-out md:relative md:z-auto md:translate-x-0 md:transition-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* Logo */}
       <div className="px-4 py-5 border-b border-surface-400/50">
         <div className="flex items-center gap-2.5">
@@ -162,6 +167,7 @@ export default function Sidebar({ activeView, onViewChange }) {
         </button>
       </div>
     </aside>
+    </>
   );
 }
 
