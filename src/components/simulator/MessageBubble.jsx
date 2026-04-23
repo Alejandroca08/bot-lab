@@ -43,7 +43,7 @@ export default function MessageBubble({ message, annotationCount }) {
         {/* Sender label for bot/agent */}
         {(isBot || isAgent) && (
           <p className={`text-[10px] font-mono font-semibold mb-1 ${isAgent ? 'text-purple-300' : 'text-accent'}`}>
-            {isAgent ? (metadata?.agentName || 'Agent') : t('bubble.bot')}
+            {isAgent ? (metadata?.agentName || 'Agent') : (metadata?.senderLabel || t('bubble.bot'))}
           </p>
         )}
 

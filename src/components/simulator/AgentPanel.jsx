@@ -146,6 +146,10 @@ export default function AgentPanel({ conversation, project, onClose, handoffAler
               : msg.sender === 'bot' ? 'customer'
               : msg.sender === 'agent' ? 'customer'
               : msg.sender,
+            metadata: {
+              ...msg.metadata,
+              ...(msg.sender === 'customer' ? { senderLabel: conversation.customerName } : {}),
+            },
           };
           return <MessageBubble key={msg.id} message={flippedMsg} />;
         })}

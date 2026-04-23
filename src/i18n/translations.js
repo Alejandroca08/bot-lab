@@ -215,6 +215,8 @@ const translations = {
   'clients.viewTestLab': { en: 'Test Lab', es: 'Test Lab' },
   'clients.never': { en: 'Never', es: 'Nunca' },
   'clients.justNow': { en: 'Just now', es: 'Ahora' },
+  'clients.delete': { en: 'Delete', es: 'Eliminar' },
+  'clients.confirmDelete': { en: 'Are you sure you want to delete this client? This cannot be undone.', es: 'Seguro que quieres eliminar este cliente? No se puede deshacer.' },
 
   // ─── Feedback Dashboard (admin) ───
   'dashboard.title': { en: 'Feedback Dashboard', es: 'Panel de feedback' },

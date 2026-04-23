@@ -90,6 +90,23 @@ export default function ClientManager({ onViewChange }) {
     setClientStats(stats);
   };
 
+  const handleDeleteClient = async (clientId) => {
+    // Delete profile (cascades from auth.users FK)
+    const { error } = await restQuery(
+      `/rest/v1/profiles?id=eq.${clientId}`,
+      { method: 'DELETE' },
+      token
+    );
+
+    if (error) {
+      console.error('[ClientManager] Failed to delete client:', error);
+      return;
+    }
+
+    setClients((prev) => prev.filter((c) => c.id !== clientId));
+    if (expandedId === clientId) setExpandedId(null);
+  };
+
   const handleTestBot = (client) => {
     if (client.project_id) {
       setActiveProjectId(client.project_id);
@@ -386,6 +403,16 @@ export default function ClientManager({ onViewChange }) {
                             {t('clients.viewTestLab')}
                           </button>
                         )}
+                        <button
+                          onClick={() => { if (confirm(t('clients.confirmDelete'))) handleDeleteClient(client.id); }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-surface-300 border border-surface-400/50 text-xs font-mono uppercase tracking-wider hover:text-danger hover:bg-danger/10 hover:border-danger/30 transition-all ml-auto"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                          {t('clients.delete')}
+                        </button>
                       </div>
                     </div>
                   )}
