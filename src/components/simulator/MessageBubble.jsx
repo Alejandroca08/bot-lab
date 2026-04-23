@@ -123,22 +123,22 @@ function StatusTick({ status }) {
   }
   if (status === 'sent') {
     return (
-      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="tick-sent">
-        <path d="M1 6l4 4L14 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="tick-sent tick-animate">
+        <path d="M1 6l4 4L14 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="20" strokeDashoffset="0" />
       </svg>
     );
   }
   if (status === 'delivered') {
     return (
-      <svg width="20" height="12" viewBox="0 0 20 12" fill="none" className="tick-delivered">
+      <svg width="20" height="12" viewBox="0 0 20 12" fill="none" className="tick-delivered tick-animate">
         <path d="M1 6l4 4L14 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M6 6l4 4L19 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6 6l4 4L19 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="20" strokeDashoffset="0" />
       </svg>
     );
   }
   if (status === 'read') {
     return (
-      <svg width="20" height="12" viewBox="0 0 20 12" fill="none" className="tick-read">
+      <svg width="20" height="12" viewBox="0 0 20 12" fill="none" className="tick-read tick-read-animate">
         <path d="M1 6l4 4L14 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M6 6l4 4L19 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -146,7 +146,7 @@ function StatusTick({ status }) {
   }
   if (status === 'failed') {
     return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-danger">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-danger animate-fade-in">
         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
         <line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         <circle cx="12" cy="16" r="1" fill="currentColor" />

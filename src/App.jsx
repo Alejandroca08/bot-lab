@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { ConversationProvider } from './contexts/ConversationContext';
+import { ToastProvider } from './contexts/ToastContext';
 import LoginPage from './pages/LoginPage';
 import MainLayout from './components/layout/MainLayout';
 import ClientLayout from './components/layout/ClientLayout';
@@ -77,7 +78,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
     </AuthProvider>
   );
 }

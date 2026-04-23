@@ -73,7 +73,7 @@ export default function MessageInput({ onSend }) {
         {text.trim() ? (
           <button
             type="submit"
-            className="p-2.5 rounded-lg bg-accent text-surface-900 hover:bg-accent-hover transition-all shrink-0"
+            className="send-btn p-2.5 rounded-lg bg-accent text-surface-900 hover:bg-accent-hover transition-all shrink-0"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="22" y1="2" x2="11" y2="13" />

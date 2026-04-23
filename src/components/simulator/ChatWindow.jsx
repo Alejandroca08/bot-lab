@@ -6,10 +6,13 @@ import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import AgentPanel from './AgentPanel';
 import BotStatusIndicator from './BotStatusIndicator';
+import TypingIndicator from './TypingIndicator';
 import PasteResponseModal from './PasteResponseModal';
 import NewConversationModal from './NewConversationModal';
 import ConversationList from './ConversationList';
+import { MessageSkeleton } from '../ui/Skeleton';
 import { useWebhook } from '../../hooks/useWebhook';
+import { useToast } from '../../contexts/ToastContext';
 import { buildInboundTextPayload, buildInboundImagePayload, buildInboundAudioPayload } from '../../utils/payloadBuilders';
 import { generateMessageId } from '../../utils/idGenerators';
 
@@ -17,23 +20,25 @@ export default function ChatWindow() {
   const { t } = useTranslation();
   const { activeProject } = useContext(ProjectContext);
   const {
-    activeConversation, conversations, setActiveConversationId,
+    activeConversation, conversations, setActiveConversationId, loading,
     createConversation, addMessage, updateMessageStatus,
     setBotStatus, getConversationsForProject, updateConversationName, deleteConversation,
   } = useContext(ConversationContext);
   const { sendPayload } = useWebhook();
+  const { addToast } = useToast();
   const [agentPanelOpen, setAgentPanelOpen] = useState(true);
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
   const [showConversations, setShowConversations] = useState(false);
   const [newConvModalOpen, setNewConvModalOpen] = useState(false);
   const [handoffAlert, setHandoffAlert] = useState(null);
+  const [botTyping, setBotTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   const projectConversations = activeProject ? getConversationsForProject(activeProject.id) : [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeConversation?.messages?.length]);
+  }, [activeConversation?.messages?.length, botTyping]);
 
   if (!activeProject) {
     return (
@@ -55,6 +60,7 @@ export default function ChatWindow() {
     const conv = await createConversation(activeProject.id, phone, customerName);
     if (conv) {
       setActiveConversationId(conv.id);
+      addToast(t('toast.conversationCreated'), 'success');
     }
     setShowConversations(false);
     setNewConvModalOpen(false);
@@ -105,8 +111,11 @@ export default function ChatWindow() {
       return;
     }
 
+    setBotTyping(true);
     const result = await sendPayload(activeProject.webhookUrl, payload);
+    setBotTyping(false);
     await updateMessageStatus(activeConversation.id, created.id, result.ok ? 'delivered' : 'failed');
+    if (!result.ok) addToast(t('toast.messageFailed'), 'error');
 
     // Auto-display bot response from webhook reply
     if (result.ok && result.data) {
@@ -237,7 +246,9 @@ export default function ChatWindow() {
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto wa-chat-bg px-4 py-3">
-          {!activeConversation ? (
+          {loading ? (
+            <MessageSkeleton count={4} />
+          ) : !activeConversation ? (
             <div className="h-full flex items-center justify-center">
               <button
                 onClick={() => setNewConvModalOpen(true)}
@@ -254,6 +265,7 @@ export default function ChatWindow() {
               {activeConversation.messages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} />
               ))}
+              {botTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </>
           )}

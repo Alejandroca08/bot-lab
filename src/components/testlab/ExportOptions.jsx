@@ -1,8 +1,11 @@
 import { formatConversationJSON, formatConversationMarkdown, formatAnnotationsSummary } from '../../utils/exportFormatters';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function ExportOptions({ conversation, onClose }) {
   const { t } = useTranslation();
+  const { addToast } = useToast();
+
   const handleExportJSON = () => {
     const json = formatConversationJSON(conversation);
     const blob = new Blob([json], { type: 'application/json' });
@@ -12,18 +15,19 @@ export default function ExportOptions({ conversation, onClose }) {
     a.download = `botlab-${conversation.customerName}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    addToast(t('toast.exportReady'), 'success');
   };
 
   const handleCopyMarkdown = async () => {
     const md = formatConversationMarkdown(conversation);
     await navigator.clipboard.writeText(md);
-    alert(t('export.copied'));
+    addToast(t('toast.copiedClipboard'), 'success');
   };
 
   const handleCopySummary = async () => {
     const summary = formatAnnotationsSummary(conversation);
     await navigator.clipboard.writeText(summary);
-    alert(t('export.summaryCopied'));
+    addToast(t('toast.copiedClipboard'), 'success');
   };
 
   return (

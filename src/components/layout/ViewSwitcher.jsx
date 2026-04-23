@@ -5,7 +5,7 @@ import TestLabView from '../testlab/TestLabView';
 import ClientManager from '../admin/ClientManager';
 import FeedbackDashboard from '../admin/FeedbackDashboard';
 
-export default function ViewSwitcher({ activeView, onViewChange }) {
+function getView(activeView, onViewChange) {
   switch (activeView) {
     case VIEWS.SETTINGS:
       return <ProjectSettings />;
@@ -20,4 +20,12 @@ export default function ViewSwitcher({ activeView, onViewChange }) {
     default:
       return <ProjectSettings />;
   }
+}
+
+export default function ViewSwitcher({ activeView, onViewChange }) {
+  return (
+    <div key={activeView} className="h-full animate-view-enter">
+      {getView(activeView, onViewChange)}
+    </div>
+  );
 }

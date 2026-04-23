@@ -231,6 +231,13 @@ const translations = {
   'dashboard.suggestion': { en: 'Suggestion', es: 'Sugerencia' },
   'dashboard.timeJustNow': { en: 'just now', es: 'ahora' },
 
+  // ─── Toast Notifications ───
+  'toast.conversationCreated': { en: 'Conversation created', es: 'Conversación creada' },
+  'toast.messageFailed': { en: 'Message failed to send', es: 'Error al enviar el mensaje' },
+  'toast.annotationSaved': { en: 'Annotation saved', es: 'Anotación guardada' },
+  'toast.exportReady': { en: 'Export downloaded', es: 'Exportación descargada' },
+  'toast.copiedClipboard': { en: 'Copied to clipboard', es: 'Copiado al portapapeles' },
+
   // ─── Language toggle ───
   'lang.toggle': { en: 'ES', es: 'EN' },
 };

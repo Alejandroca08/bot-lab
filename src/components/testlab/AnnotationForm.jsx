@@ -1,12 +1,14 @@
 import { useState, useContext } from 'react';
 import { ConversationContext } from '../../contexts/ConversationContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useToast } from '../../contexts/ToastContext';
 import { ANNOTATION_CATEGORIES, ANNOTATION_SEVERITIES } from '../../utils/constants';
 import { generateUUID } from '../../utils/idGenerators';
 
 export default function AnnotationForm({ conversationId, messageId, onClose }) {
   const { addAnnotation } = useContext(ConversationContext);
   const { t } = useTranslation();
+  const { addToast } = useToast();
   const [form, setForm] = useState({
     category: '',
     severity: '',
@@ -28,6 +30,7 @@ export default function AnnotationForm({ conversationId, messageId, onClose }) {
       createdAt: new Date().toISOString(),
     });
 
+    addToast(t('toast.annotationSaved'), 'success');
     onClose();
   };
 
