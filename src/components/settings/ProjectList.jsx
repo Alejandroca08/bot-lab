@@ -46,15 +46,7 @@ export default function ProjectList({ projects, activeProjectId, onSelect, onEdi
                 </span>
                 <span className="truncate max-w-[300px]">{project.webhookUrl}</span>
               </div>
-              {project.testPhoneNumbers.length > 0 && (
-                <div className="flex items-center gap-2 mt-2">
-                  {project.testPhoneNumbers.map((phone, i) => (
-                    <span key={i} className="text-[10px] font-mono bg-surface-700 text-surface-200 px-2 py-0.5 rounded">
-                      {phone}
-                    </span>
-                  ))}
-                </div>
-              )}
+
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
               <button

@@ -30,11 +30,11 @@ export function ConversationProvider({ children }) {
       setLoading(true);
 
       const select = encodeURIComponent('*,messages(*),annotations(*)');
-      const { data, error } = await restQuery(
-        `/rest/v1/conversations?select=${select}&project_id=eq.${activeProject.id}&order=created_at.desc`,
-        {},
-        token
-      );
+      let url = `/rest/v1/conversations?select=${select}&project_id=eq.${activeProject.id}&order=created_at.desc`;
+      if (!auth.isAdmin && auth.session?.user?.id) {
+        url += `&user_id=eq.${auth.session.user.id}`;
+      }
+      const { data, error } = await restQuery(url, {}, token);
 
       if (!error && data) {
         setConversations(data.map(normalizeConversation));
@@ -276,6 +276,7 @@ function normalizeConversation(row) {
   return {
     id: row.id,
     projectId: row.project_id,
+    userId: row.user_id,
     simulatedPhoneNumber: row.simulated_phone_number,
     customerName: row.customer_name,
     botStatus: row.bot_status,

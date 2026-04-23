@@ -54,7 +54,6 @@ const translations = {
   'projectForm.webhookUrl': { en: 'Webhook URL', es: 'URL del webhook' },
   'projectForm.payloadFormat': { en: 'Payload Format', es: 'Formato de payload' },
   'projectForm.agentPhone': { en: 'Agent Phone Number', es: 'Teléfono del agente' },
-  'projectForm.testPhones': { en: 'Test Phone Numbers (comma-separated)', es: 'Teléfonos de prueba (separados por coma)' },
   'projectForm.cancel': { en: 'Cancel', es: 'Cancelar' },
   'projectForm.update': { en: 'Update Project', es: 'Actualizar proyecto' },
   'projectForm.create': { en: 'Create Project', es: 'Crear proyecto' },
@@ -128,6 +127,7 @@ const translations = {
   'testlab.selectConversation': { en: 'Select conversation...', es: 'Seleccionar conversación...' },
   'testlab.export': { en: 'Export', es: 'Exportar' },
   'testlab.selectToReview': { en: 'Select a conversation to review', es: 'Selecciona una conversación para revisar' },
+  'testlab.allClients': { en: 'All Clients', es: 'Todos los clientes' },
 
   // ─── Annotation Form ───
   'annotation.category': { en: 'Category', es: 'Categoría' },

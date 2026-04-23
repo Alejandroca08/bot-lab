@@ -69,7 +69,6 @@ export function ProjectProvider({ children }) {
       webhook_url: project.webhookUrl,
       webhook_format: project.webhookFormat || 'ycloud',
       agent_phone_number: project.agentPhoneNumber || '',
-      test_phone_numbers: project.testPhoneNumbers || [],
       created_by: auth?.session?.user?.id,
     };
 
@@ -96,7 +95,6 @@ export function ProjectProvider({ children }) {
     if (updates.webhookUrl !== undefined) row.webhook_url = updates.webhookUrl;
     if (updates.webhookFormat !== undefined) row.webhook_format = updates.webhookFormat;
     if (updates.agentPhoneNumber !== undefined) row.agent_phone_number = updates.agentPhoneNumber;
-    if (updates.testPhoneNumbers !== undefined) row.test_phone_numbers = updates.testPhoneNumbers;
     row.updated_at = new Date().toISOString();
 
     const { error } = await restQuery(
@@ -161,7 +159,6 @@ function normalizeProject(row) {
     webhookUrl: row.webhook_url,
     webhookFormat: row.webhook_format,
     agentPhoneNumber: row.agent_phone_number || '',
-    testPhoneNumbers: row.test_phone_numbers || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

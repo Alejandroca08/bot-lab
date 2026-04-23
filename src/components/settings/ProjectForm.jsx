@@ -15,7 +15,6 @@ export default function ProjectForm({ project, onSave, onCancel }) {
     webhookUrl: project?.webhookUrl || '',
     webhookFormat: project?.webhookFormat || 'ycloud',
     agentPhoneNumber: project?.agentPhoneNumber || '',
-    testPhoneNumbers: project?.testPhoneNumbers?.join(', ') || '',
   });
   const [errors, setErrors] = useState({});
 
@@ -38,10 +37,6 @@ export default function ProjectForm({ project, onSave, onCancel }) {
       webhookUrl: form.webhookUrl.trim(),
       webhookFormat: form.webhookFormat,
       agentPhoneNumber: form.agentPhoneNumber.trim(),
-      testPhoneNumbers: form.testPhoneNumbers
-        .split(',')
-        .map(p => p.trim())
-        .filter(Boolean),
     });
   };
 
@@ -77,12 +72,9 @@ export default function ProjectForm({ project, onSave, onCancel }) {
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 mb-8">
+      <div className="mb-8">
         <Field label={t('projectForm.agentPhone')}>
           <input value={form.agentPhoneNumber} onChange={update('agentPhoneNumber')} placeholder="+56975283845" className={inputClass + ' font-mono text-xs'} />
-        </Field>
-        <Field label={t('projectForm.testPhones')}>
-          <input value={form.testPhoneNumbers} onChange={update('testPhoneNumbers')} placeholder="+1234567890, +0987654321" className={inputClass + ' font-mono text-xs'} />
         </Field>
       </div>
 

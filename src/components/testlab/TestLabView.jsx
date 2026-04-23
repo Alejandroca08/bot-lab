@@ -1,7 +1,9 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { ConversationContext } from '../../contexts/ConversationContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { restQuery } from '../../lib/supabase';
 import AnnotatedMessage from './AnnotatedMessage';
 import ConversationSummary from './ConversationSummary';
 import ExportOptions from './ExportOptions';
@@ -9,10 +11,32 @@ import ExportOptions from './ExportOptions';
 export default function TestLabView() {
   const { activeProject } = useContext(ProjectContext);
   const { conversations, activeConversation, setActiveConversationId, getConversationsForProject } = useContext(ConversationContext);
+  const { isAdmin, session } = useAuth();
   const { t } = useTranslation();
   const [showExport, setShowExport] = useState(false);
+  const [clientFilter, setClientFilter] = useState('all');
+  const [clientProfiles, setClientProfiles] = useState([]);
+
+  const token = session?.access_token;
+
+  // Load client profiles for the filter dropdown (admin only)
+  useEffect(() => {
+    if (!isAdmin || !activeProject || !token) return;
+    const loadClients = async () => {
+      const { data } = await restQuery(
+        `/rest/v1/profiles?select=id,name&role=eq.client&project_id=eq.${activeProject.id}`,
+        {},
+        token
+      );
+      if (data) setClientProfiles(data);
+    };
+    loadClients();
+  }, [isAdmin, activeProject?.id, token]);
 
   const projectConversations = activeProject ? getConversationsForProject(activeProject.id) : [];
+  const filteredConversations = clientFilter === 'all'
+    ? projectConversations
+    : projectConversations.filter(c => c.userId === clientFilter);
 
   if (!activeProject) {
     return (
@@ -34,6 +58,19 @@ export default function TestLabView() {
             <h2 className="font-mono text-sm font-bold text-surface-50 tracking-wider uppercase">{t('testlab.title')}</h2>
             <p className="text-[11px] text-surface-300 mt-0.5">{t('testlab.subtitle')}</p>
           </div>
+          {/* Client filter (admin only) */}
+          {isAdmin && clientProfiles.length > 0 && (
+            <select
+              value={clientFilter}
+              onChange={(e) => { setClientFilter(e.target.value); setActiveConversationId(null); }}
+              className="bg-surface-700 border border-surface-400 rounded-lg px-3 py-1.5 text-xs text-surface-50 font-mono focus:outline-none focus:border-accent"
+            >
+              <option value="all">{t('testlab.allClients')}</option>
+              {clientProfiles.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
           {/* Conversation picker */}
           <select
             value={activeConversation?.id || ''}
@@ -41,7 +78,7 @@ export default function TestLabView() {
             className="bg-surface-700 border border-surface-400 rounded-lg px-3 py-1.5 text-xs text-surface-50 font-mono focus:outline-none focus:border-accent"
           >
             <option value="">{t('testlab.selectConversation')}</option>
-            {projectConversations.map((conv) => (
+            {filteredConversations.map((conv) => (
               <option key={conv.id} value={conv.id}>
                 {conv.customerName} — {conv.messages.length} msgs — {new Date(conv.createdAt).toLocaleDateString()}
               </option>

@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { supabase, restQuery } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { ProjectContext } from '../../contexts/ProjectContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function FeedbackDashboard() {
   const { session } = useAuth();
+  const { activeProject } = useContext(ProjectContext);
   const { t, lang } = useTranslation();
   const token = session?.access_token;
   const [annotations, setAnnotations] = useState([]);
@@ -30,23 +32,30 @@ export default function FeedbackDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [token]);
+  }, [token, activeProject?.id]);
 
   const loadAnnotations = async () => {
     setLoading(true);
 
     const select = encodeURIComponent(
-      '*,conversations!inner(customer_name,project_id,projects:project_id(name)),messages!inner(content,type,sender),profiles:user_id(name)'
+      '*,conversations(customer_name,project_id),messages(content,type,sender),profiles:user_id(name)'
     );
     const { data, error } = await restQuery(
-      `/rest/v1/annotations?select=${select}&order=created_at.desc&limit=100`,
+      `/rest/v1/annotations?select=${select}&order=created_at.desc&limit=200`,
       {},
       token
     );
 
+    if (error) {
+      console.error('[FeedbackDashboard] Failed to load annotations:', error);
+    }
     if (!error && data) {
-      setAnnotations(data);
-      updateStats(data);
+      // Filter by active project if set
+      const filtered = activeProject
+        ? data.filter(a => a.conversations?.project_id === activeProject.id)
+        : data;
+      setAnnotations(filtered);
+      updateStats(filtered);
     }
 
     setLoading(false);
@@ -54,7 +63,7 @@ export default function FeedbackDashboard() {
 
   const loadAnnotationDetails = async (id) => {
     const select = encodeURIComponent(
-      '*,conversations!inner(customer_name,project_id,projects:project_id(name)),messages!inner(content,type,sender),profiles:user_id(name)'
+      '*,conversations(customer_name,project_id),messages(content,type,sender),profiles:user_id(name)'
     );
     const { data, error } = await restQuery(
       `/rest/v1/annotations?select=${select}&id=eq.${id}`,
@@ -62,9 +71,15 @@ export default function FeedbackDashboard() {
       token
     );
 
+    if (error) {
+      console.error('[FeedbackDashboard] Failed to load annotation detail:', error);
+    }
     if (!error && data) {
-      setAnnotations((prev) => [data, ...prev]);
-      updateStats(null);
+      // Only add if it belongs to the active project (or no project filter)
+      if (!activeProject || data.conversations?.project_id === activeProject.id) {
+        setAnnotations((prev) => [data, ...prev]);
+        updateStats(null);
+      }
     }
   };
 
@@ -165,7 +180,7 @@ export default function FeedbackDashboard() {
                 {/* Context */}
                 <div className="bg-surface-700/50 rounded-lg p-3 mt-2">
                   <div className="flex items-center gap-3 text-[10px] font-mono text-surface-300 mb-1.5">
-                    <span className="text-accent">{ann.conversations?.projects?.name || 'Unknown project'}</span>
+                    <span className="text-accent">{activeProject?.name || 'Unknown project'}</span>
                     <span>·</span>
                     <span>by {ann.profiles?.name || 'Unknown'}</span>
                     <span>·</span>
