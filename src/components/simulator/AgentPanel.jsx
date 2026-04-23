@@ -139,12 +139,12 @@ export default function AgentPanel({ conversation, project, onClose, handoffAler
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1" style={{ background: 'rgba(45, 27, 78, 0.1)' }}>
         {conversation.messages.map((msg) => {
           // In agent panel, flip perspective: customer msgs are "incoming", agent msgs are "outgoing"
-          // In agent panel: customer→incoming(bot), agent→outgoing(customer), bot→purple(agent)
+          // In agent panel: customer→incoming(left), bot+agent→outgoing(right)
           const flippedMsg = {
             ...msg,
             sender: msg.sender === 'customer' ? 'bot'
+              : msg.sender === 'bot' ? 'customer'
               : msg.sender === 'agent' ? 'customer'
-              : msg.sender === 'bot' ? 'agent'
               : msg.sender,
           };
           return <MessageBubble key={msg.id} message={flippedMsg} />;
