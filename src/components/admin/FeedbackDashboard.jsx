@@ -176,51 +176,69 @@ export default function FeedbackDashboard() {
         ) : (
           <div className="space-y-3">
             {filteredAnnotations.map((ann) => (
-              <div key={ann.id} className="bg-surface-800 border border-surface-400/50 rounded-xl p-4 animate-fade-in">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full
-                      ${ann.severity === 'critical' ? 'bg-severity-critical' :
-                        ann.severity === 'medium' ? 'bg-severity-medium' : 'bg-severity-minor'}`}
-                    />
-                    <span className="text-xs font-mono uppercase tracking-wider text-surface-200">
-                      {ann.category.replace('_', ' ')}
-                    </span>
-                    <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded
-                      ${ann.severity === 'critical' ? 'bg-severity-critical/15 text-severity-critical' :
-                        ann.severity === 'medium' ? 'bg-severity-medium/15 text-severity-medium' :
-                        'bg-severity-minor/15 text-severity-minor'}`}>
-                      {ann.severity}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-surface-300">{timeAgo(ann.created_at)}</span>
-                </div>
-
-                <p className="text-sm text-surface-50 mb-2">{ann.note}</p>
-
-                {ann.suggestion && (
-                  <p className="text-xs text-accent/70 italic mb-2">{t('dashboard.suggestion')}: {ann.suggestion}</p>
-                )}
-
-                {/* Context */}
-                <div className="bg-surface-700/50 rounded-lg p-3 mt-2">
-                  <div className="flex items-center gap-3 text-[10px] font-mono text-surface-300 mb-1.5">
-                    <span className="text-accent">{activeProject?.name || 'Unknown project'}</span>
-                    <span>·</span>
-                    <span>by {ann._authorName || 'Unknown'}</span>
-                    <span>·</span>
-                    <span>{ann.conversations?.customer_name || 'Unknown'}</span>
-                  </div>
-                  <p className="text-xs text-surface-200 truncate">
-                    <span className={`font-semibold ${ann.messages?.sender === 'bot' ? 'text-accent' : 'text-blue-400'}`}>
-                      {ann.messages?.sender === 'bot' ? t('sender.bot') : ann.messages?.sender === 'customer' ? t('sender.customer') : t('sender.agent')}:
-                    </span>
-                    {' '}{ann.messages?.type === 'text' ? ann.messages?.content : `[${ann.messages?.type}]`}
-                  </p>
-                </div>
-              </div>
+              <AnnotationCard key={ann.id} ann={ann} t={t} timeAgo={timeAgo} projectName={activeProject?.name} />
             ))}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnnotationCard({ ann, t, timeAgo, projectName }) {
+  const [expanded, setExpanded] = useState(false);
+  const messageText = ann.messages?.type === 'text' ? ann.messages?.content : `[${ann.messages?.type}]`;
+  const isLong = messageText && messageText.length > 120;
+
+  return (
+    <div className="bg-surface-800 border border-surface-400/50 rounded-xl p-4 animate-fade-in">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full
+            ${ann.severity === 'critical' ? 'bg-severity-critical' :
+              ann.severity === 'medium' ? 'bg-severity-medium' : 'bg-severity-minor'}`}
+          />
+          <span className="text-xs font-mono uppercase tracking-wider text-surface-200">
+            {ann.category.replace('_', ' ')}
+          </span>
+          <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded
+            ${ann.severity === 'critical' ? 'bg-severity-critical/15 text-severity-critical' :
+              ann.severity === 'medium' ? 'bg-severity-medium/15 text-severity-medium' :
+              'bg-severity-minor/15 text-severity-minor'}`}>
+            {ann.severity}
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-surface-300">{timeAgo(ann.created_at)}</span>
+      </div>
+
+      <p className="text-sm text-surface-50 mb-2">{ann.note}</p>
+
+      {ann.suggestion && (
+        <p className="text-xs text-accent/70 italic mb-2">{t('dashboard.suggestion')}: {ann.suggestion}</p>
+      )}
+
+      {/* Context */}
+      <div
+        className={`bg-surface-700/50 rounded-lg p-3 mt-2 ${isLong ? 'cursor-pointer' : ''}`}
+        onClick={() => isLong && setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-3 text-[10px] font-mono text-surface-300 mb-1.5">
+          <span className="text-accent">{projectName || 'Unknown project'}</span>
+          <span>·</span>
+          <span>by {ann._authorName || 'Unknown'}</span>
+          <span>·</span>
+          <span>{ann.conversations?.customer_name || 'Unknown'}</span>
+        </div>
+        <p className={`text-xs text-surface-200 whitespace-pre-wrap break-words ${!expanded && isLong ? 'line-clamp-2' : ''}`}>
+          <span className={`font-semibold ${ann.messages?.sender === 'bot' ? 'text-accent' : 'text-blue-400'}`}>
+            {ann.messages?.sender === 'bot' ? t('sender.bot') : ann.messages?.sender === 'customer' ? t('sender.customer') : t('sender.agent')}:
+          </span>
+          {' '}{messageText}
+        </p>
+        {isLong && (
+          <span className="text-[10px] font-mono text-surface-400 mt-1 inline-block">
+            {expanded ? '▲ collapse' : '▼ expand'}
+          </span>
         )}
       </div>
     </div>
